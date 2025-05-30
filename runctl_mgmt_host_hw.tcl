@@ -1,5 +1,5 @@
 ################################################
-# onewire_master "Run-Control Management Host" 24.0.1125
+# runctl_mgmt_host "Run-Control Management Host" 24.0.1125
 # Yifeng Wang 
 ################################################
 
@@ -86,6 +86,75 @@ Select the debug level of the IP (affects generation).<br>
 </html>"
 set_parameter_property DEBUG LONG_DESCRIPTION $dscpt
 set_parameter_property DEBUG DESCRIPTION $dscpt
+
+################################################
+# display items
+################################################
+add_display_item "" "IP Setting" GROUP ""
+add_display_item "IP Setting" RUN_START_ACK_SYMBOL PARAMETER 
+add_display_item "IP Setting" RUN_END_ACK_SYMBOL PARAMETER 
+add_display_item "IP Setting" DEBUG PARAMETER 
+
+add_display_item "" "Description" GROUP ""
+set dscpt \
+"<html>
+Data flow: 
+<ul>
+    <li><b>ingress</b> : <b>synclink</b> the command from Mu3e central run control box. <br> </li>
+    <li><b>egress</b> : <b>upload</b> the reply to Mu3e central run control box. <br> </li>
+</ul>
+<br>
+
+Data (onboard management) flow: 
+<ul>
+    <li><b>egress</b> : <b>runctl</b> the run control streaming interface to all FPGA IP blocks. <br> </li>
+</ul>
+<br>
+
+Control flow:
+<ul>
+    <li><b>non-timing critical</b> : <b>log</b> avalon-mm interface to read log fifo <br> </li>
+</ul>
+<br>
+
+Clock Domain: <br>
+<ul>
+    <li> <b>mm</b> : memory-mapped slave</li>
+    <li> <b>lvdspll</b> : 125 MHz master clock sync with the pll receiver links (also is the data path clock).</li>
+</ul>
+<br> 
+
+How does it work? :<br>
+<ol>
+    <li>Receive the run control command on <b>synclink</b> </li>
+    <li> Issue decoded run control command to qsys modules (which has runctl mgmt agent) and listens for their ack (ready signals)</li>
+    <li>Ack the run control command through <b>upload</b> </li>
+    
+</ol>
+<br> 
+
+How to read back log fifo? :<br>
+<ul>
+    <li> Monitor through <b>log</b> interface </li>
+    <li> User can read back the receive (received localled on <b>synclink</b>) and execution (ready asserted by all agents) timestamps of each run command.  </li>
+    <li> the <b>log</b> interface connects to a fifo, you have to read 4 words for a complete log sentense.   </li>
+</ul>   
+<br> 
+   
+Log data structure is 4-tuple: <br>
+<ul>
+    <li> Word 0: received timestamp \[48:16\] </li>
+    <li> Word 1: received timestamp \[15:0\] | empty \[7:0\] | run command \[7:0\] </li>
+    <li> Word 2: payload_if \[31:0\] </li>
+    <li> Word 3: execution timestamp \[31:0\] </li>
+</ul>
+<br> 
+
+note: the timestamps are free-running across runs and only reset by lvdspll_reset
+<br> 
+
+</html>"
+add_display_item "Description" "dscpt" TEXT $dscpt
 
 
 ################################################
