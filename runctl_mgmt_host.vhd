@@ -21,7 +21,7 @@
 --              Word 3: execution timestamp [31:0]
 --          note: the timestamps are free-running across runs and only reset by lvdspll_reset
 --      
---      Issue decoded run control command to qsys modules (which has runctl mgmt agent) and listens for their ack (ready signals)
+--      Issue decoded run control command to qsys modules (which has runctl mgmt agent) and listen for their ack (ready signals)
 --          
 --      Assert associate reset depending on the run control command 
 --          reset mask is under dev ...
