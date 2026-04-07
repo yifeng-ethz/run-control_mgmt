@@ -21,7 +21,7 @@ set_module_property GROUP "Mu3e Control Plane/Modules"
 set_module_property AUTHOR "Yifeng Wang"
 set_module_property DISPLAY_NAME "Run-Control Management Host"
 set_module_property INSTANTIATE_IN_SYSTEM_MODULE true
-set_module_property ICON_PATH ../figures/mu3e_logo.png
+set_module_property ICON_PATH ../quartus_system/logo/mu3e_logo.png
 set_module_property EDITABLE false
 set_module_property REPORT_TO_TALKBACK false
 set_module_property ALLOW_GREYBOX_GENERATION false
@@ -248,7 +248,6 @@ set_interface_property dp_hard_reset synchronousEdges NONE
 add_interface ct_hard_reset reset start
 add_interface_port ct_hard_reset ct_hard_reset reset Output 1
 set_interface_property ct_hard_reset synchronousEdges NONE
-
 
 
 
