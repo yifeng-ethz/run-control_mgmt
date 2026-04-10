@@ -14,7 +14,7 @@ package require qsys
 ################################################
 set_module_property DESCRIPTION "Converts slow-control packet into system bus (Avalon Memory-Mapped) transactions"
 set_module_property NAME runctl_mgmt_host
-set_module_property VERSION 24.0.1125
+set_module_property VERSION 24.0.1126
 set_module_property INTERNAL false
 set_module_property OPAQUE_ADDRESS_MAP true
 set_module_property GROUP "Mu3e Control Plane/Modules"
@@ -242,12 +242,16 @@ add_interface_port lvdspll_reset lvdspll_reset reset Input 1
 # hard reset source #
 #####################
 add_interface dp_hard_reset reset start
-add_interface_port dp_hard_reset dp_hard_reset reset Output 1
+set_interface_property dp_hard_reset associatedClock lvdspll_clock
+set_interface_property dp_hard_reset associatedResetSinks "lvdspll_reset"
 set_interface_property dp_hard_reset synchronousEdges NONE
+add_interface_port dp_hard_reset dp_hard_reset reset Output 1
 
 add_interface ct_hard_reset reset start
-add_interface_port ct_hard_reset ct_hard_reset reset Output 1
+set_interface_property ct_hard_reset associatedClock lvdspll_clock
+set_interface_property ct_hard_reset associatedResetSinks "lvdspll_reset"
 set_interface_property ct_hard_reset synchronousEdges NONE
+add_interface_port ct_hard_reset ct_hard_reset reset Output 1
 
 
 
