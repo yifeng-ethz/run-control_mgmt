@@ -18,6 +18,9 @@ Source checkout: `online_dpv2/online/fe_board/fe_scifi/` at
 | `scifi_datapath_system_v2.qsys`   | XML-authored (no .tcl source in tree) |
 | `upload_system.qsys`              | XML-authored (no .tcl source in tree) |
 | `mutrig_datapath_system_v2.qsys`  | XML-authored (no .tcl source in tree) |
+| `scifi_lvds_receiver_system.qsys` | XML-authored snapshot dependency |
+| `hit_stack_system.qsys`           | XML-authored snapshot dependency |
+| `avst_errcnt_system.qsys`         | XML-authored snapshot dependency |
 
 ### Why this snapshot exists
 
@@ -39,6 +42,10 @@ This snapshot preserves the pre-modification system so the new
 reset-fanout wiring (pipelined, CDC-synchronized from the
 `lvdspll_clk` source domain into the `cclk156` and `mclk125`
 destination domains) can be compared against the baseline.
+
+The three nested subsystem `.qsys` files are copied from the same
+`b514aae93` FE SciFi snapshot so `qsys-generate` can resolve the
+captured tree using only repository-local search paths.
 
 ### Intended follow-up changes (not applied yet)
 
