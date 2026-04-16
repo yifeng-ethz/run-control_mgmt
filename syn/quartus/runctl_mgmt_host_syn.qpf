@@ -1,0 +1,4 @@
+QUARTUS_VERSION = "18.1"
+DATE = "12:00:00  April 13, 2026"
+
+PROJECT_REVISION = "runctl_mgmt_host_syn"

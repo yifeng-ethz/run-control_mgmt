@@ -1,0 +1,6 @@
+logs/
+transcript
+tr_db.log
+vsim.wlf
+*.wlf
+work_runctl_*/

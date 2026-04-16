@@ -230,6 +230,23 @@ begin
             wait until rising_edge(clk125);
         end procedure;
 
+        procedure log_inject_command(
+            constant cmd_word : in std_logic_vector(31 downto 0)) is
+        begin
+            assert cmd_word /= x"00000000"
+                report "log_inject_command requires a non-zero command word"
+                severity failure;
+            log_writedata <= cmd_word;
+            log_write <= '1';
+            loop
+                wait until rising_edge(clk125);
+                wait for 1 ps;
+                exit when log_waitrequest = '0';
+            end loop;
+            log_write <= '0';
+            wait until rising_edge(clk125);
+        end procedure;
+
         procedure log_read_word(variable data_word : out std_logic_vector(31 downto 0)) is
         begin
             log_read <= '1';
@@ -322,6 +339,46 @@ begin
         log_read_tuple(word0_v, word1_v, word2_v, word3_v);
         report_tuple("flush", word0_v, word1_v, word2_v, word3_v);
         assert_zero_tuple(word0_v, word1_v, word2_v, word3_v);
+
+        runctl_ready <= '0';
+        log_inject_command(x"00000011");
+        wait_for_runctl_hold(RC_RUN_SYNC_CONST, 2);
+        runctl_ready <= '1';
+        wait_for_runctl_handshake(RC_RUN_SYNC_CONST);
+        expect_no_upload(8);
+        wait_for_logged_tuple("local_run_sync", word0_v, word1_v, word2_v, word3_v);
+        assert word2_v(7 downto 0) = CMD_RUN_SYNC_CONST
+            report "log command byte mismatch for local RUN_SYNC"
+            severity failure;
+        assert word1_v = x"00000000"
+            report "local RUN_SYNC payload log word should be zero"
+            severity failure;
+        recv_ts_v := unsigned(word3_v & word2_v(31 downto 16));
+        exec_ts_v := unsigned(word0_v);
+        assert recv_ts_v > prev_recv_ts_v
+            report "local RUN_SYNC receive timestamp did not advance"
+            severity failure;
+        assert exec_ts_v /= 0
+            report "local RUN_SYNC execution timestamp should be non-zero"
+            severity failure;
+        prev_recv_ts_v := recv_ts_v;
+
+        log_inject_command(x"11223310");
+        wait_for_runctl_handshake(RC_RUN_PREPARE_CONST);
+        wait_for_upload(x"FE", x"112233");
+        send_idle(4);
+        wait_for_logged_tuple("local_run_prepare", word0_v, word1_v, word2_v, word3_v);
+        assert word2_v(7 downto 0) = CMD_RUN_PREPARE_CONST
+            report "log command byte mismatch for local RUN_PREPARE"
+            severity failure;
+        assert word1_v = x"00112233"
+            report "local RUN_PREPARE payload log word mismatch"
+            severity failure;
+        recv_ts_v := unsigned(word3_v & word2_v(31 downto 16));
+        assert recv_ts_v > prev_recv_ts_v
+            report "local RUN_PREPARE receive timestamp did not advance"
+            severity failure;
+        prev_recv_ts_v := recv_ts_v;
 
         runctl_ready <= '0';
         send_command(CMD_RUN_SYNC_CONST);

@@ -1,0 +1,12 @@
+work_lint/
+quartus_proj/db/
+quartus_proj/incremental_db/
+quartus_proj/output_files/
+layer1_source.log
+layer2_elab.log
+layer3a_syn.rpt
+layer3b_fit.rpt
+layer3c_sta_cdc.rpt
+layer3c_sta_cdc.rpt.drc.rpt
+layer3_design_assistant.rpt
+summary.md

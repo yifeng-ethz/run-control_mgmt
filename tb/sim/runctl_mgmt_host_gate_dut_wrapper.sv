@@ -1,0 +1,54 @@
+`timescale 1ps/1ps
+
+module runctl_mgmt_host_dut_wrapper (
+  input  logic [8:0]  asi_synclink_data,
+  input  logic [2:0]  asi_synclink_error,
+  output logic [35:0] aso_upload_data,
+  output logic        aso_upload_valid,
+  input  logic        aso_upload_ready,
+  output logic        aso_upload_startofpacket,
+  output logic        aso_upload_endofpacket,
+  output logic        aso_runctl_valid,
+  output logic [8:0]  aso_runctl_data,
+  input  logic        aso_runctl_ready,
+  input  logic [4:0]  avs_csr_address,
+  input  logic        avs_csr_read,
+  output logic [31:0] avs_csr_readdata,
+  input  logic        avs_csr_write,
+  input  logic [31:0] avs_csr_writedata,
+  output logic        avs_csr_waitrequest,
+  output logic        dp_hard_reset,
+  output logic        ct_hard_reset,
+  output logic        ext_hard_reset,
+  input  logic        mm_clk,
+  input  logic        mm_reset,
+  input  logic        lvdspll_clk,
+  input  logic        lvdspll_reset
+);
+
+  runctl_mgmt_host_syn_top dut (
+    .asi_synclink_data        (asi_synclink_data),
+    .asi_synclink_error       (asi_synclink_error),
+    .aso_upload_data          (aso_upload_data),
+    .aso_upload_valid         (aso_upload_valid),
+    .aso_upload_ready         (aso_upload_ready),
+    .aso_upload_startofpacket (aso_upload_startofpacket),
+    .aso_upload_endofpacket   (aso_upload_endofpacket),
+    .aso_runctl_valid         (aso_runctl_valid),
+    .aso_runctl_data          (aso_runctl_data),
+    .aso_runctl_ready         (aso_runctl_ready),
+    .avs_csr_address          (avs_csr_address),
+    .avs_csr_read             (avs_csr_read),
+    .avs_csr_readdata         (avs_csr_readdata),
+    .avs_csr_write            (avs_csr_write),
+    .avs_csr_writedata        (avs_csr_writedata),
+    .avs_csr_waitrequest      (avs_csr_waitrequest),
+    .dp_hard_reset            (dp_hard_reset),
+    .ct_hard_reset            (ct_hard_reset),
+    .ext_hard_reset           (ext_hard_reset),
+    .mm_clk                   (mm_clk),
+    .mm_reset                 (mm_reset),
+    .lvdspll_clk              (lvdspll_clk),
+    .lvdspll_reset            (lvdspll_reset)
+  );
+endmodule

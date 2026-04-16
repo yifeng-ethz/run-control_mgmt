@@ -1,0 +1,78 @@
+`timescale 1ps/1ps
+
+module runctl_mgmt_host_dut_wrapper #(
+  parameter logic [7:0]  RUN_START_ACK_SYMBOL = 8'hFE,
+  parameter logic [7:0]  RUN_END_ACK_SYMBOL   = 8'hFD,
+  parameter int          DEBUG                = 1,
+  parameter logic [31:0] IP_UID               = 32'h5243_4D48,
+  parameter logic [7:0]  VERSION_MAJOR        = 8'd26,
+  parameter logic [7:0]  VERSION_MINOR        = 8'd1,
+  parameter logic [3:0]  VERSION_PATCH        = 4'd0,
+  parameter logic [11:0] BUILD                = 12'h413,
+  parameter logic [31:0] VERSION_DATE         = 32'h2026_0413,
+  parameter logic [31:0] VERSION_GIT          = 32'h0,
+  parameter logic [31:0] INSTANCE_ID          = 32'h0
+) (
+  input  logic [8:0]  asi_synclink_data,
+  input  logic [2:0]  asi_synclink_error,
+  output logic [35:0] aso_upload_data,
+  output logic        aso_upload_valid,
+  input  logic        aso_upload_ready,
+  output logic        aso_upload_startofpacket,
+  output logic        aso_upload_endofpacket,
+  output logic        aso_runctl_valid,
+  output logic [8:0]  aso_runctl_data,
+  input  logic        aso_runctl_ready,
+  input  logic [4:0]  avs_csr_address,
+  input  logic        avs_csr_read,
+  output logic [31:0] avs_csr_readdata,
+  input  logic        avs_csr_write,
+  input  logic [31:0] avs_csr_writedata,
+  output logic        avs_csr_waitrequest,
+  output logic        dp_hard_reset,
+  output logic        ct_hard_reset,
+  output logic        ext_hard_reset,
+  input  logic        mm_clk,
+  input  logic        mm_reset,
+  input  logic        lvdspll_clk,
+  input  logic        lvdspll_reset
+);
+
+  runctl_mgmt_host #(
+    .RUN_START_ACK_SYMBOL(RUN_START_ACK_SYMBOL),
+    .RUN_END_ACK_SYMBOL  (RUN_END_ACK_SYMBOL),
+    .DEBUG               (DEBUG),
+    .IP_UID              (IP_UID),
+    .VERSION_MAJOR       (VERSION_MAJOR),
+    .VERSION_MINOR       (VERSION_MINOR),
+    .VERSION_PATCH       (VERSION_PATCH),
+    .BUILD               (BUILD),
+    .VERSION_DATE        (VERSION_DATE),
+    .VERSION_GIT         (VERSION_GIT),
+    .INSTANCE_ID         (INSTANCE_ID)
+  ) dut (
+    .asi_synclink_data      (asi_synclink_data),
+    .asi_synclink_error     (asi_synclink_error),
+    .aso_upload_data        (aso_upload_data),
+    .aso_upload_valid       (aso_upload_valid),
+    .aso_upload_ready       (aso_upload_ready),
+    .aso_upload_startofpacket(aso_upload_startofpacket),
+    .aso_upload_endofpacket (aso_upload_endofpacket),
+    .aso_runctl_valid       (aso_runctl_valid),
+    .aso_runctl_data        (aso_runctl_data),
+    .aso_runctl_ready       (aso_runctl_ready),
+    .avs_csr_address        (avs_csr_address),
+    .avs_csr_read           (avs_csr_read),
+    .avs_csr_readdata       (avs_csr_readdata),
+    .avs_csr_write          (avs_csr_write),
+    .avs_csr_writedata      (avs_csr_writedata),
+    .avs_csr_waitrequest    (avs_csr_waitrequest),
+    .dp_hard_reset          (dp_hard_reset),
+    .ct_hard_reset          (ct_hard_reset),
+    .ext_hard_reset         (ext_hard_reset),
+    .mm_clk                 (mm_clk),
+    .mm_reset               (mm_reset),
+    .lvdspll_clk            (lvdspll_clk),
+    .lvdspll_reset          (lvdspll_reset)
+  );
+endmodule

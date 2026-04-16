@@ -1,0 +1,23 @@
+set_global_assignment -name FAMILY "Arria V"
+set_global_assignment -name DEVICE 5AGXBA7D4F31C5
+set_global_assignment -name TOP_LEVEL_ENTITY runctl_mgmt_host_lint_top
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 18.1.0
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 4
+set_global_assignment -name FITTER_EFFORT "STANDARD FIT"
+set_global_assignment -name ROUTER_TIMING_OPTIMIZATION_LEVEL MAXIMUM
+set_global_assignment -name PHYSICAL_SYNTHESIS_COMBO_LOGIC ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_DUPLICATION ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_REGISTER_RETIMING ON
+set_global_assignment -name PHYSICAL_SYNTHESIS_EFFORT NORMAL
+
+set_global_assignment -name SYSTEMVERILOG_FILE ../../rtl/runctl_mgmt_host.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../runctl_mgmt_host_lint_top.sv
+set_global_assignment -name VHDL_FILE ../../altera_ip/logging_fifo.vhd
+
+set_global_assignment -name SDC_FILE ../cdc.sdc
+set_global_assignment -name LAST_QUARTUS_VERSION "18.1.0 Standard Edition"
+
+set_instance_assignment -name GLOBAL_SIGNAL "GLOBAL CLOCK" -to mm_clk
+set_instance_assignment -name GLOBAL_SIGNAL "GLOBAL CLOCK" -to lvdspll_clk
