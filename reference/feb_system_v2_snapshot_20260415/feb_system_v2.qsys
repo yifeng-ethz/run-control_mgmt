@@ -49,22 +49,6 @@
          type = "int";
       }
    }
-   element upload_lvds_reset_bridge
-   {
-      datum _sortIndex
-      {
-         value = "5";
-         type = "int";
-      }
-   }
-   element upload_subsystem
-   {
-      datum _sortIndex
-      {
-         value = "6";
-         type = "int";
-      }
-   }
 }
 ]]></parameter>
  <parameter name="clockCrossingAdapter" value="AUTO" />
@@ -96,6 +80,11 @@
    internal="control_path_subsystem.sc_hub_hub_sc_packet_downlink"
    type="conduit"
    dir="end" />
+ <interface
+   name="hit_type3_upper"
+   internal="data_path_subsystem.hit_type3_upper"
+   type="avalon_streaming"
+   dir="start" />
  <interface
    name="inject"
    internal="data_path_subsystem.inject"
@@ -149,6 +138,16 @@
    type="reset"
    dir="end" />
  <interface
+   name="rstlink"
+   internal="data_path_subsystem.rstlink"
+   type="avalon_streaming"
+   dir="start" />
+ <interface
+   name="runctl_mgmt_host"
+   internal="data_path_subsystem.runctl_mgmt_host"
+   type="avalon_streaming"
+   dir="end" />
+ <interface
    name="sense_dq"
    internal="control_path_subsystem.sense_dq"
    type="conduit"
@@ -165,7 +164,7 @@
    dir="end" />
  <interface
    name="upload_data0_sc_rc"
-   internal="upload_subsystem.upload_data0_sc_rc"
+   internal="control_path_subsystem.data_sc_merger_out"
    type="avalon_streaming"
    dir="start" />
  <interface
@@ -193,11 +192,11 @@
    kind="debug_sc_system_v2"
    version="1.0"
    enabled="1">
-  <parameter name="AUTO_AVMM_PORT_ADDRESS_MAP"><![CDATA[<address-map><slave name='data_path_subsystem_lvds_rx_controller_pro_0.csr' start='0x0' end='0x40' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_0_backpressure_fifo.csr' start='0x860' end='0x870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_0_mutrig_frame_deassembly_0.csr' start='0x900' end='0x910' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_1_backpressure_fifo.csr' start='0x1860' end='0x1870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_1_mutrig_frame_deassembly_0.csr' start='0x1900' end='0x1910' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_2_backpressure_fifo.csr' start='0x2860' end='0x2870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_2_mutrig_frame_deassembly_0.csr' start='0x2900' end='0x2910' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_3_backpressure_fifo.csr' start='0x3860' end='0x3870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_3_mutrig_frame_deassembly_0.csr' start='0x3900' end='0x3910' /><slave name='data_path_subsystem_mts_preprocessor_0.csr' start='0x4000' end='0x4020' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_4_backpressure_fifo.csr' start='0x4860' end='0x4870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_4_mutrig_frame_deassembly_0.csr' start='0x4900' end='0x4910' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_5_backpressure_fifo.csr' start='0x5860' end='0x5870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_5_mutrig_frame_deassembly_0.csr' start='0x5900' end='0x5910' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_6_backpressure_fifo.csr' start='0x6860' end='0x6870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_6_mutrig_frame_deassembly_0.csr' start='0x6900' end='0x6910' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_7_backpressure_fifo.csr' start='0x7860' end='0x7870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_7_mutrig_frame_deassembly_0.csr' start='0x7900' end='0x7910' /><slave name='data_path_subsystem_mts_preprocessor_1.csr' start='0x8000' end='0x8020' /><slave name='data_path_subsystem_histogram_statistics_0.hist_bin' start='0xA000' end='0xA400' /><slave name='data_path_subsystem_histogram_statistics_0.csr' start='0xA400' end='0xA480' /><slave name='data_path_subsystem_histogram_statistics_1.hist_bin' start='0xA800' end='0xAC00' /><slave name='data_path_subsystem_histogram_statistics_1.csr' start='0xAC00' end='0xAC80' /><slave name='data_path_subsystem_hit_stack_subsystem_0_ring_buffer_cam_0.csr' start='0xB000' end='0xB080' /><slave name='data_path_subsystem_hit_stack_subsystem_0_ring_buffer_cam_1.csr' start='0xB080' end='0xB100' /><slave name='data_path_subsystem_hit_stack_subsystem_0_ring_buffer_cam_2.csr' start='0xB100' end='0xB180' /><slave name='data_path_subsystem_hit_stack_subsystem_0_ring_buffer_cam_3.csr' start='0xB180' end='0xB200' /><slave name='data_path_subsystem_mutrig_injector_0.csr' start='0xB200' end='0xB240' /><slave name='data_path_subsystem_hit_stack_subsystem_1_ring_buffer_cam_0.csr' start='0xB400' end='0xB480' /><slave name='data_path_subsystem_hit_stack_subsystem_1_ring_buffer_cam_1.csr' start='0xB480' end='0xB500' /><slave name='data_path_subsystem_hit_stack_subsystem_1_ring_buffer_cam_2.csr' start='0xB500' end='0xB580' /><slave name='data_path_subsystem_hit_stack_subsystem_1_ring_buffer_cam_3.csr' start='0xB580' end='0xB600' /><slave name='data_path_subsystem_hit_stack_subsystem_0_feb_frame_assembly_0.csr' start='0xD000' end='0xD040' /><slave name='data_path_subsystem_hit_stack_subsystem_1_feb_frame_assembly_0.csr' start='0xD040' end='0xD080' /></address-map>]]></parameter>
+  <parameter name="AUTO_AVMM_PORT_ADDRESS_MAP"><![CDATA[<address-map><slave name='data_path_subsystem_lvds_rx_controller_pro_0.csr' start='0x0' end='0x40' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_0_backpressure_fifo.csr' start='0x860' end='0x870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_0_mutrig_frame_deassembly_0.csr' start='0x900' end='0x910' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_1_backpressure_fifo.csr' start='0x1860' end='0x1870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_1_mutrig_frame_deassembly_0.csr' start='0x1900' end='0x1910' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_2_backpressure_fifo.csr' start='0x2860' end='0x2870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_2_mutrig_frame_deassembly_0.csr' start='0x2900' end='0x2910' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_3_backpressure_fifo.csr' start='0x3860' end='0x3870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_3_mutrig_frame_deassembly_0.csr' start='0x3900' end='0x3910' /><slave name='data_path_subsystem_mts_preprocessor_0.csr' start='0x4000' end='0x4020' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_4_backpressure_fifo.csr' start='0x4860' end='0x4870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_4_mutrig_frame_deassembly_0.csr' start='0x4900' end='0x4910' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_5_backpressure_fifo.csr' start='0x5860' end='0x5870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_5_mutrig_frame_deassembly_0.csr' start='0x5900' end='0x5910' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_6_backpressure_fifo.csr' start='0x6860' end='0x6870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_6_mutrig_frame_deassembly_0.csr' start='0x6900' end='0x6910' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_7_backpressure_fifo.csr' start='0x7860' end='0x7870' /><slave name='data_path_subsystem_mutrig_datapath_subsystem_7_mutrig_frame_deassembly_0.csr' start='0x7900' end='0x7910' /><slave name='data_path_subsystem_mts_preprocessor_1.csr' start='0x8000' end='0x8020' /><slave name='data_path_subsystem_histogram_statistics_0.hist_bin' start='0xA000' end='0xA400' /><slave name='data_path_subsystem_histogram_statistics_0.csr' start='0xA400' end='0xA440' /><slave name='data_path_subsystem_histogram_statistics_1.hist_bin' start='0xA800' end='0xAC00' /><slave name='data_path_subsystem_histogram_statistics_1.csr' start='0xAC00' end='0xAC40' /><slave name='data_path_subsystem_hit_stack_subsystem_0_ring_buffer_cam_0.csr' start='0xB000' end='0xB080' /><slave name='data_path_subsystem_hit_stack_subsystem_0_ring_buffer_cam_1.csr' start='0xB080' end='0xB100' /><slave name='data_path_subsystem_hit_stack_subsystem_0_ring_buffer_cam_2.csr' start='0xB100' end='0xB180' /><slave name='data_path_subsystem_hit_stack_subsystem_0_ring_buffer_cam_3.csr' start='0xB180' end='0xB200' /><slave name='data_path_subsystem_mutrig_injector_0.csr' start='0xB200' end='0xB240' /><slave name='data_path_subsystem_hit_stack_subsystem_1_ring_buffer_cam_0.csr' start='0xB400' end='0xB480' /><slave name='data_path_subsystem_hit_stack_subsystem_1_ring_buffer_cam_1.csr' start='0xB480' end='0xB500' /><slave name='data_path_subsystem_hit_stack_subsystem_1_ring_buffer_cam_2.csr' start='0xB500' end='0xB580' /><slave name='data_path_subsystem_hit_stack_subsystem_1_ring_buffer_cam_3.csr' start='0xB580' end='0xB600' /><slave name='data_path_subsystem_hit_stack_subsystem_0_feb_frame_assembly_0.csr' start='0xD000' end='0xD040' /><slave name='data_path_subsystem_hit_stack_subsystem_1_feb_frame_assembly_0.csr' start='0xD040' end='0xD080' /></address-map>]]></parameter>
   <parameter name="AUTO_AVMM_PORT_ADDRESS_WIDTH" value="AddressWidth = 16" />
-  <parameter name="AUTO_CLK125_IN_CLK_CLOCK_DOMAIN" value="7" />
+  <parameter name="AUTO_CLK125_IN_CLK_CLOCK_DOMAIN" value="6" />
   <parameter name="AUTO_CLK125_IN_CLK_CLOCK_RATE" value="125000000" />
-  <parameter name="AUTO_CLK125_IN_CLK_RESET_DOMAIN" value="7" />
+  <parameter name="AUTO_CLK125_IN_CLK_RESET_DOMAIN" value="6" />
   <parameter name="AUTO_CLK156_IN_CLK_CLOCK_DOMAIN" value="1" />
   <parameter name="AUTO_CLK156_IN_CLK_CLOCK_RATE" value="156250000" />
   <parameter name="AUTO_CLK156_IN_CLK_RESET_DOMAIN" value="1" />
@@ -205,9 +204,9 @@
   <parameter name="AUTO_DEVICE_FAMILY" value="Arria V" />
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="5_H4" />
   <parameter name="AUTO_GENERATION_ID" value="0" />
-  <parameter name="AUTO_MAX10_LINK_CLOCK_CLOCK_DOMAIN" value="6" />
+  <parameter name="AUTO_MAX10_LINK_CLOCK_CLOCK_DOMAIN" value="5" />
   <parameter name="AUTO_MAX10_LINK_CLOCK_CLOCK_RATE" value="0" />
-  <parameter name="AUTO_MAX10_LINK_CLOCK_RESET_DOMAIN" value="6" />
+  <parameter name="AUTO_MAX10_LINK_CLOCK_RESET_DOMAIN" value="5" />
   <parameter name="AUTO_UNIQUE_ID">feb_system_v2_control_path_subsystem</parameter>
  </module>
  <module
@@ -222,15 +221,15 @@
   <parameter name="AUTO_DEVICE_FAMILY" value="Arria V" />
   <parameter name="AUTO_DEVICE_SPEEDGRADE" value="5_H4" />
   <parameter name="AUTO_GENERATION_ID" value="0" />
-  <parameter name="AUTO_LVDS_PLL_INCLOCK_CLOCK_DOMAIN" value="5" />
+  <parameter name="AUTO_LVDS_PLL_INCLOCK_CLOCK_DOMAIN" value="4" />
   <parameter name="AUTO_LVDS_PLL_INCLOCK_CLOCK_RATE" value="0" />
-  <parameter name="AUTO_LVDS_PLL_INCLOCK_RESET_DOMAIN" value="5" />
-  <parameter name="AUTO_MONITOR_CLOCK_125_IN_CLOCK_DOMAIN" value="7" />
+  <parameter name="AUTO_LVDS_PLL_INCLOCK_RESET_DOMAIN" value="4" />
+  <parameter name="AUTO_MONITOR_CLOCK_125_IN_CLOCK_DOMAIN" value="6" />
   <parameter name="AUTO_MONITOR_CLOCK_125_IN_CLOCK_RATE" value="125000000" />
-  <parameter name="AUTO_MONITOR_CLOCK_125_IN_RESET_DOMAIN" value="7" />
-  <parameter name="AUTO_OSC_CLOCK_50_IN_CLOCK_DOMAIN" value="8" />
+  <parameter name="AUTO_MONITOR_CLOCK_125_IN_RESET_DOMAIN" value="6" />
+  <parameter name="AUTO_OSC_CLOCK_50_IN_CLOCK_DOMAIN" value="7" />
   <parameter name="AUTO_OSC_CLOCK_50_IN_CLOCK_RATE" value="0" />
-  <parameter name="AUTO_OSC_CLOCK_50_IN_RESET_DOMAIN" value="8" />
+  <parameter name="AUTO_OSC_CLOCK_50_IN_RESET_DOMAIN" value="7" />
   <parameter name="AUTO_UNIQUE_ID">feb_system_v2_data_path_subsystem</parameter>
   <parameter name="AUTO_XCVR_CLOCK_CLOCK_DOMAIN" value="1" />
   <parameter name="AUTO_XCVR_CLOCK_CLOCK_RATE" value="156250000" />
@@ -242,34 +241,6 @@
   <parameter name="inputClockFrequency" value="0" />
   <parameter name="resetSynchronousEdges" value="DEASSERT" />
  </module>
- <module
-   name="upload_lvds_reset_bridge"
-   kind="altera_reset_bridge"
-   version="18.1"
-   enabled="1">
-  <parameter name="ACTIVE_LOW_RESET" value="0" />
-  <parameter name="AUTO_CLK_CLOCK_RATE" value="125000000" />
-  <parameter name="NUM_RESET_OUTPUTS" value="1" />
-  <parameter name="SYNCHRONOUS_EDGES" value="deassert" />
-  <parameter name="USE_RESET_REQUEST" value="0" />
- </module>
- <module
-   name="upload_subsystem"
-   kind="upload_system"
-   version="1.0"
-   enabled="1">
-  <parameter name="AUTO_CONTROL_CLOCK_CLOCK_DOMAIN" value="1" />
-  <parameter name="AUTO_CONTROL_CLOCK_CLOCK_RATE" value="156250000" />
-  <parameter name="AUTO_CONTROL_CLOCK_RESET_DOMAIN" value="1" />
-  <parameter name="AUTO_DEVICE" value="5AGXBA7D4F31C5" />
-  <parameter name="AUTO_DEVICE_FAMILY" value="Arria V" />
-  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="5_H4" />
-  <parameter name="AUTO_GENERATION_ID" value="0" />
-  <parameter name="AUTO_LVDS_OUTCLOCK_CLOCK_DOMAIN" value="4" />
-  <parameter name="AUTO_LVDS_OUTCLOCK_CLOCK_RATE" value="125000000" />
-  <parameter name="AUTO_LVDS_OUTCLOCK_RESET_DOMAIN" value="4" />
-  <parameter name="AUTO_UNIQUE_ID">feb_system_v2_upload_subsystem</parameter>
- </module>
  <connection
    kind="avalon"
    version="18.1"
@@ -279,26 +250,6 @@
   <parameter name="baseAddress" value="0x0000" />
   <parameter name="defaultConnection" value="false" />
  </connection>
- <connection
-   kind="avalon_streaming"
-   version="18.1"
-   start="control_path_subsystem.data_sc_merger_out"
-   end="upload_subsystem.upload_sc" />
- <connection
-   kind="avalon_streaming"
-   version="18.1"
-   start="data_path_subsystem.hit_type3_upper"
-   end="upload_subsystem.upload_data" />
- <connection
-   kind="avalon_streaming"
-   version="18.1"
-   start="data_path_subsystem.rstlink"
-   end="upload_subsystem.synclink" />
- <connection
-   kind="avalon_streaming"
-   version="18.1"
-   start="upload_subsystem.runctl_mgmt_host"
-   end="data_path_subsystem.runctl_mgmt_host" />
  <connection
    kind="clock"
    version="18.1"
@@ -317,11 +268,6 @@
  <connection
    kind="clock"
    version="18.1"
-   start="cclk156_source.clk"
-   end="upload_subsystem.control_clock" />
- <connection
-   kind="clock"
-   version="18.1"
    start="mclk125_souce.clk"
    end="data_path_subsystem.monitor_clock_125_in" />
  <connection
@@ -329,16 +275,6 @@
    version="18.1"
    start="cclk156_source.clk"
    end="data_path_subsystem.xcvr_clock" />
- <connection
-   kind="clock"
-   version="18.1"
-   start="data_path_subsystem.lvds_outclock"
-   end="upload_lvds_reset_bridge.clk" />
- <connection
-   kind="clock"
-   version="18.1"
-   start="data_path_subsystem.lvds_outclock"
-   end="upload_subsystem.lvds_outclock" />
  <connection
    kind="clock"
    version="18.1"
@@ -362,16 +298,6 @@
  <connection
    kind="reset"
    version="18.1"
-   start="cclk156_source.clk_reset"
-   end="upload_subsystem.control_clock_reset" />
- <connection
-   kind="reset"
-   version="18.1"
-   start="mclk125_souce.clk_reset"
-   end="upload_lvds_reset_bridge.in_reset" />
- <connection
-   kind="reset"
-   version="18.1"
    start="mclk125_souce.clk_reset"
    end="data_path_subsystem.monitor_reset_in_reset" />
  <connection
@@ -379,11 +305,6 @@
    version="18.1"
    start="cclk156_source.clk_reset"
    end="data_path_subsystem.xcvr_reset" />
- <connection
-   kind="reset"
-   version="18.1"
-   start="upload_lvds_reset_bridge.out_reset"
-   end="upload_subsystem.lvds_outclock_reset" />
  <connection
    kind="reset"
    version="18.1"

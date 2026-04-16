@@ -297,6 +297,14 @@
          type = "String";
       }
    }
+   element hit_stack_system
+   {
+      datum _originalDeviceFamily
+      {
+         value = "Arria V";
+         type = "String";
+      }
+   }
    element ring_buffer_cam_0
    {
       datum _sortIndex
@@ -395,8 +403,28 @@
    type="avalon_streaming"
    dir="start" />
  <interface
+   name="frame_debug_delay8loss"
+   internal="feb_frame_assembly_0.debug_delay8loss"
+   type="avalon_streaming"
+   dir="start" />
+ <interface
+   name="frame_debug_filllevel"
+   internal="feb_frame_assembly_0.debug_filllevel"
+   type="avalon_streaming"
+   dir="start" />
+ <interface
+   name="frame_debug_loss8fill"
+   internal="feb_frame_assembly_0.debug_loss8fill"
+   type="avalon_streaming"
+   dir="start" />
+ <interface
    name="frame_debug_ts"
    internal="feb_frame_assembly_0.debug_ts"
+   type="avalon_streaming"
+   dir="start" />
+ <interface
+   name="frame_ts_delta"
+   internal="feb_frame_assembly_0.ts_delta"
    type="avalon_streaming"
    dir="start" />
  <interface
@@ -498,56 +526,69 @@
  <module
    name="feb_frame_assembly_0"
    kind="feb_frame_assembly"
-   version="25.0.306"
+   version="26.0.328"
    enabled="1">
   <parameter name="DEBUG" value="1" />
   <parameter name="INTERLEAVING_FACTOR" value="4" />
+  <parameter name="N_SHD" value="128" />
  </module>
  <module
    name="ring_buffer_cam_0"
    kind="ring_buffer_cam"
-   version="25.0.324"
+   version="26.0.330"
    enabled="1">
   <parameter name="DEBUG" value="1" />
+  <parameter name="ENCODER_LEAF_WIDTH" value="16" />
+  <parameter name="ENCODER_PIPE_STAGES" value="4" />
   <parameter name="INTERLEAVING_FACTOR" value="4" />
   <parameter name="INTERLEAVING_INDEX" value="0" />
-  <parameter name="RING_BUFFER_N_ENTRY" value="1024" />
+  <parameter name="N_PARTITIONS" value="4" />
+  <parameter name="RING_BUFFER_N_ENTRY" value="512" />
   <parameter name="SEARCH_KEY_WIDTH" value="8" />
   <parameter name="SIDE_DATA_BITS" value="31" />
  </module>
  <module
    name="ring_buffer_cam_1"
    kind="ring_buffer_cam"
-   version="25.0.324"
+   version="26.0.330"
    enabled="1">
   <parameter name="DEBUG" value="1" />
+  <parameter name="ENCODER_LEAF_WIDTH" value="16" />
+  <parameter name="ENCODER_PIPE_STAGES" value="4" />
   <parameter name="INTERLEAVING_FACTOR" value="4" />
   <parameter name="INTERLEAVING_INDEX" value="1" />
-  <parameter name="RING_BUFFER_N_ENTRY" value="1024" />
+  <parameter name="N_PARTITIONS" value="4" />
+  <parameter name="RING_BUFFER_N_ENTRY" value="512" />
   <parameter name="SEARCH_KEY_WIDTH" value="8" />
   <parameter name="SIDE_DATA_BITS" value="31" />
  </module>
  <module
    name="ring_buffer_cam_2"
    kind="ring_buffer_cam"
-   version="25.0.324"
+   version="26.0.330"
    enabled="1">
   <parameter name="DEBUG" value="1" />
+  <parameter name="ENCODER_LEAF_WIDTH" value="16" />
+  <parameter name="ENCODER_PIPE_STAGES" value="4" />
   <parameter name="INTERLEAVING_FACTOR" value="4" />
   <parameter name="INTERLEAVING_INDEX" value="2" />
-  <parameter name="RING_BUFFER_N_ENTRY" value="1024" />
+  <parameter name="N_PARTITIONS" value="4" />
+  <parameter name="RING_BUFFER_N_ENTRY" value="512" />
   <parameter name="SEARCH_KEY_WIDTH" value="8" />
   <parameter name="SIDE_DATA_BITS" value="31" />
  </module>
  <module
    name="ring_buffer_cam_3"
    kind="ring_buffer_cam"
-   version="25.0.324"
+   version="26.0.330"
    enabled="1">
   <parameter name="DEBUG" value="1" />
+  <parameter name="ENCODER_LEAF_WIDTH" value="16" />
+  <parameter name="ENCODER_PIPE_STAGES" value="4" />
   <parameter name="INTERLEAVING_FACTOR" value="4" />
   <parameter name="INTERLEAVING_INDEX" value="3" />
-  <parameter name="RING_BUFFER_N_ENTRY" value="1024" />
+  <parameter name="N_PARTITIONS" value="4" />
+  <parameter name="RING_BUFFER_N_ENTRY" value="512" />
   <parameter name="SEARCH_KEY_WIDTH" value="8" />
   <parameter name="SIDE_DATA_BITS" value="31" />
  </module>

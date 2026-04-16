@@ -1,79 +1,60 @@
 ## feb_system_v2 snapshot 2026-04-15
 
-Reference snapshot of the FEB SciFi `feb_system_v2` Qsys tree *before*
-wiring runctl_mgmt_host `ext_hard_reset` / `dp_hard_reset` / `ct_hard_reset`
-into the subsystem reset fanout.
+Reference baseline for the FEB SciFi `feb_system_v2` Platform Designer tree
+that regenerates from a repository-local search path.
 
-Source checkout: `online_dpv2/online/fe_board/fe_scifi/` at
-`b514aae93` (FEB SciFi round-5 Option-C ship build).
+Source material:
+
+- `online_dpv2/online/fe_board/fe_scifi/` at `b514aae93` for the authoring
+  TCL and nested subsystem snapshots.
+- `tmp/patch_fix_sc_burst_20260408/fe_scifi_stage/` for the last known-good
+  generated Qsys shells that match the archived `feb_system_v2/synthesis`
+  baseline.
 
 ### What is captured
 
-| File                              | Authoring form |
-|-----------------------------------|----------------|
-| `feb_system_v2.tcl`               | qsys-script TCL (authoritative source) |
-| `feb_system_v2.qsys`              | XML generated from the TCL via `save_system` |
-| `debug_sc_system_v2.tcl`          | qsys-script TCL (authoritative source) |
+| File                              | Role |
+|-----------------------------------|------|
+| `feb_system_v2.tcl`               | Authoritative top-level qsys-script TCL from the FE SciFi checkout |
+| `feb_system_v2.qsys`              | Archived generated shell matching the old known-good baseline |
+| `debug_sc_system_v2.tcl`          | Authoritative debug/control-path qsys-script TCL |
 | `debug_sc_system_v2.qsys`         | XML generated from the TCL |
-| `scifi_datapath_system_v2.qsys`   | XML-authored (no .tcl source in tree) |
-| `upload_system.qsys`              | XML-authored (no .tcl source in tree) |
-| `mutrig_datapath_system_v2.qsys`  | XML-authored (no .tcl source in tree) |
-| `scifi_lvds_receiver_system.qsys` | XML-authored snapshot dependency |
-| `hit_stack_system.qsys`           | XML-authored snapshot dependency |
-| `avst_errcnt_system.qsys`         | XML-authored snapshot dependency |
+| `scifi_datapath_system_v2.qsys`   | Archived generated shell matching the old known-good baseline |
+| `hit_stack_system.qsys`           | Archived generated shell matching the old known-good baseline |
+| `mutrig_datapath_system_v2.qsys`  | Repo-local compatible nested MuTRiG datapath subsystem |
+| `scifi_lvds_receiver_system.qsys` | Nested receiver dependency copied from `b514aae93` |
+| `avst_errcnt_system.qsys`         | Nested error-counter dependency copied from `b514aae93` |
+| `upload_system.qsys`              | Extra FE SciFi subsystem snapshot kept for reference |
 
 ### Why this snapshot exists
 
-The current wiring of `feb_system_v2.qsys` has `runctl_mgmt_host_0`
-`ct_hard_reset`, `dp_hard_reset`, and `ext_hard_reset` reset-source
-conduits exported out of `upload_subsystem` but **dangling** at the
-top level. Result: `CMD_RESET` (0x30) and `CMD_STOP_RESET` (0x31)
-from the SWB run-control link do not reach `control_path_subsystem`
-or `data_path_subsystem` — the `sc_hub_core` drop counters, the
-legacy `max10_prog_avmm` CSR state, the `onewire_master_controller`,
-the `firefly_xcvr_ctrl`, the `on_die_temp_sense`, the `mm_bridge`,
-the datapath counters, etc. all stay at whatever value they held
-when the command was issued. The top-level `reset` conduit (hooked
-to `mclk125_souce.clk_in_reset` and cascaded into
-`cclk156_source.clk_in_reset`) is only exercised on external
-power-up reset; the runctl RESET command has no hook into it.
+The current FE SciFi authoring tree is not fully self-contained inside this
+repository. The archived `patch_fix_sc_burst_20260408` generation tree is the
+last local baseline that regenerated cleanly and produced the checked-in
+`feb_system_v2/synthesis` output. This snapshot keeps the minimum mix of Qsys
+sources needed to reproduce that baseline shape with only:
 
-This snapshot preserves the pre-modification system so the new
-reset-fanout wiring (pipelined, CDC-synchronized from the
-`lvdspll_clk` source domain into the `cclk156` and `mclk125`
-destination domains) can be compared against the baseline.
+```bash
+export MU3E_IP_CORES_ROOT=/path/to/mu3e-ip-cores
+qsys-generate run-control_mgmt/reference/feb_system_v2_snapshot_20260415/feb_system_v2.qsys \
+  --search-path="$MU3E_IP_CORES_ROOT/quartus_system,$" \
+  --synthesis=VHDL
+```
 
-The three nested subsystem `.qsys` files are copied from the same
-`b514aae93` FE SciFi snapshot so `qsys-generate` can resolve the
-captured tree using only repository-local search paths.
+Validation on 2026-04-16:
 
-### Intended follow-up changes (not applied yet)
-
-1. Connect `upload_subsystem.ext_hard_reset_out` (once exported at
-   the subsystem boundary) to a new `altera_reset_bridge` chain in
-   `feb_system_v2` that:
-   - synchronizes from `lvdspll_clk` → `cclk156` (and `mclk125`
-     where needed)
-   - pipelines the synchronized reset across 2–3 flop stages to
-     absorb the fanout without regressing the round-5 timing
-     margin
-   - OR-merges with the existing `cclk156_source.clk_reset`
-     (or feeds a new dedicated `hard_reset` sink on each
-     subsystem) so that `control_path_subsystem`,
-     `data_path_subsystem`, and the non-`runctl_mgmt_host`
-     portions of `upload_subsystem` all observe the RESET pulse.
-2. Verify each IP inside the three subsystems actually
-   responds to its `csr_reset` / `avmm_rst` / `clk156_in_rst`
-   input — registers, counters, and FSMs should return to
-   power-up state; M10K / LUTRAM storage is not required to
-   clear (consistent with a cold hard reset).
-3. Do **not** loop `ext_hard_reset` back into
-   `runctl_mgmt_host_0.lvdspll_reset` or `.mm_reset` — the IP's
-   own header explicitly warns this creates a latch-up.
+- `qsys-generate` completes without errors from a clean parent checkout using
+  only the repo-local search path above.
+- The generated top-level `synthesis/feb_system_v2.vhd` matches the archived
+  `tmp/patch_fix_sc_burst_20260408/fe_scifi_stage/feb_system_v2/synthesis`
+  baseline byte-for-byte.
+- Leaf generated files can still differ from the archived tree because the
+  underlying IP repositories have moved forward since that baseline was first
+  produced.
 
 ### How to compare later
 
-```
-diff -u feb_system_v2_snapshot_20260415/feb_system_v2.tcl \
-        online_dpv2/online/fe_board/fe_scifi/feb_system_v2.tcl
+```bash
+diff -u tmp/patch_fix_sc_burst_20260408/fe_scifi_stage/feb_system_v2.qsys \
+        run-control_mgmt/reference/feb_system_v2_snapshot_20260415/feb_system_v2.qsys
 ```
