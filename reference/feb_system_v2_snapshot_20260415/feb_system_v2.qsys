@@ -212,7 +212,7 @@
  </module>
  <module
    name="data_path_subsystem"
-   kind="scifi_datapath_v2_system"
+   kind="scifi_datapath_system_v2"
    version="1.0"
    enabled="1">
   <parameter name="AUTO_AVMM_CLK_CLOCK_DOMAIN" value="1" />
