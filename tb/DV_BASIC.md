@@ -345,12 +345,12 @@ One directed test per defined synclink command byte. Each test sends the command
 ### B012_synclink_reset
 
 - **ID:** B012_synclink_reset
-- **Category:** Command decode / CMD_RESET with hard_reset assertion
-- **Goal:** Prove that `CMD_RESET (0x30)` with a 16-bit assert mask drives both `dp_hard_reset` and `ct_hard_reset` when both CONTROL masks are 0, and updates RESET_MASK[15:0].
+- **Category:** Command decode / CMD_RESET with hard_reset assertion (spec-aligned single-byte)
+- **Goal:** Prove that `CMD_RESET (0x30)` as a **single-byte synclink signal** (per Mu3e SpecBook §4.6.2) drives both `dp_hard_reset` and `ct_hard_reset` when both CONTROL masks are 0, and updates RESET_MASK[15:0] to the broadcast value `0xFFFF`.
 - **Setup:** Post-reset idle. CONTROL = 0 (both rst_mask_dp and rst_mask_ct = 0).
 - **Stimulus sequence:**
   1. Read CONTROL to confirm masks are 0.
-  2. Drive synclink byte `0x30` followed by 16-bit payload `0xABCD` (two synclink bytes).
+  2. Drive synclink byte `0x30` (no payload bytes — spec-compliant broadcast).
   3. Wait for idle.
   4. Sample STATUS.
   5. Read RESET_MASK.
@@ -358,16 +358,16 @@ One directed test per defined synclink command byte. Each test sends the command
 - **Expected result:**
   1. STATUS bit[4] `dp_hard_reset` = 1 (live).
   2. STATUS bit[5] `ct_hard_reset` = 1 (live).
-  3. RESET_MASK[15:0] = `0xABCD`.
+  3. RESET_MASK[15:0] = `0xFFFF` (synclink broadcast convention).
   4. RESET_MASK[31:16] unchanged from reset default (0).
   5. LAST_CMD[7:0] = `0x30`.
   6. Runctl emits one transaction with `0x30` (fanout behaviour per plan command-byte table).
   7. Upload emits zero transactions.
-  8. Log FIFO usedw advanced by 4; log payload word encodes `{assert_mask, release_mask}` with assert=`0xABCD`.
-- **Coverage bins hit:** `csr_addr_read[0x02]`, `csr_addr_read[0x03]`, `csr_addr_read[0x04]`, `csr_addr_read[0x07]`, `cmd_byte_synclink[0x30]`, `cmd_payload_reset[mid]`, `control_mask_combo[00]`
+  8. Log FIFO usedw advanced by 4; log payload word encodes `{assert_mask, release_mask}` with assert=`0xFFFF`.
+- **Coverage bins hit:** `csr_addr_read[0x02]`, `csr_addr_read[0x03]`, `csr_addr_read[0x04]`, `csr_addr_read[0x07]`, `cmd_byte_synclink[0x30]`, `cmd_payload_reset[0xFFFF]`, `control_mask_combo[00]`
 - **Pass criteria:**
   1. Both `dp_hard_reset` and `ct_hard_reset` asserted in the lvdspll_clk domain.
-  2. RESET_MASK[15:0] = `0xABCD`.
+  2. RESET_MASK[15:0] = `0xFFFF`.
   3. LAST_CMD correct; one log entry; no upload ack.
 - **Status:** planned
 
@@ -376,12 +376,12 @@ One directed test per defined synclink command byte. Each test sends the command
 ### B013_synclink_stop_reset
 
 - **ID:** B013_synclink_stop_reset
-- **Category:** Command decode / CMD_STOP_RESET
-- **Goal:** Prove that `CMD_STOP_RESET (0x31)` with a 16-bit release mask deasserts both hard_reset outputs and updates RESET_MASK[31:16].
-- **Setup:** Run B012 first so that `dp_hard_reset` and `ct_hard_reset` are asserted and RESET_MASK[15:0] = `0xABCD`. Keep CONTROL masks = 0.
+- **Category:** Command decode / CMD_STOP_RESET (spec-aligned single-byte)
+- **Goal:** Prove that `CMD_STOP_RESET (0x31)` as a **single-byte synclink signal** (per Mu3e SpecBook §4.6.2) deasserts both hard_reset outputs and updates RESET_MASK[31:16] to the broadcast value `0xFFFF`.
+- **Setup:** Run B012 first so that `dp_hard_reset` and `ct_hard_reset` are asserted and RESET_MASK[15:0] = `0xFFFF`. Keep CONTROL masks = 0.
 - **Stimulus sequence:**
   1. Confirm STATUS[4]=1 and STATUS[5]=1 (pre-condition).
-  2. Drive synclink byte `0x31` followed by 16-bit payload `0x5A5A`.
+  2. Drive synclink byte `0x31` (no payload bytes).
   3. Wait for idle.
   4. Sample STATUS.
   5. Read RESET_MASK.
@@ -389,16 +389,16 @@ One directed test per defined synclink command byte. Each test sends the command
 - **Expected result:**
   1. STATUS bit[4] `dp_hard_reset` = 0.
   2. STATUS bit[5] `ct_hard_reset` = 0.
-  3. RESET_MASK[15:0] = `0xABCD` (unchanged from B012).
-  4. RESET_MASK[31:16] = `0x5A5A`.
+  3. RESET_MASK[15:0] = `0xFFFF` (unchanged from B012).
+  4. RESET_MASK[31:16] = `0xFFFF`.
   5. LAST_CMD[7:0] = `0x31`.
   6. Runctl emits one transaction with `0x31`.
   7. Upload emits zero transactions.
   8. Log FIFO usedw advanced by 4.
-- **Coverage bins hit:** `csr_addr_read[0x03]`, `csr_addr_read[0x04]`, `csr_addr_read[0x07]`, `cmd_byte_synclink[0x31]`, `cmd_payload_stop_reset[mid]`
+- **Coverage bins hit:** `csr_addr_read[0x03]`, `csr_addr_read[0x04]`, `csr_addr_read[0x07]`, `cmd_byte_synclink[0x31]`, `cmd_payload_stop_reset[0xFFFF]`
 - **Pass criteria:**
   1. Both hard_reset outputs deasserted.
-  2. RESET_MASK[31:16] = `0x5A5A`; RESET_MASK[15:0] preserved.
+  2. RESET_MASK[31:16] = `0xFFFF`; RESET_MASK[15:0] preserved.
 - **Status:** planned
 
 ---

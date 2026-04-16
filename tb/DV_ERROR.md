@@ -160,6 +160,16 @@ Recovery budget for all section 1 cases: **32 lvdspll_clk cycles** from the last
 
 ## 3. Payload Truncation (R005, R006) -- 2 cases
 
+**Spec alignment note (2026-04-16):** After the 26.2.0 spec-alignment change,
+CMD_RESET and CMD_STOP_RESET are **single-byte** commands on the synclink
+path (no payload). R006 (originally "CMD_RESET truncated mid-2-byte-mask") is
+therefore **not applicable** on the synclink path — a single byte cannot be
+truncated. R006 is repurposed to cover the `local_cmd` 32-bit AVMM write path
+where the optional mask is still carried in the upper 24 bits; the
+"truncation" becomes a CSR-write timing test instead of a synclink error
+injection. Truncation of CMD_RUN_PREPARE (the only remaining multi-byte
+command on synclink) is still covered by R005.
+
 ### R005_truncated_run_prepare
 
 | Field | Value |
@@ -176,17 +186,17 @@ Recovery budget for all section 1 cases: **32 lvdspll_clk cycles** from the last
 | PROPOSAL | **needs RTL lock.** Current DV_PLAN assumes "no timeout on RX_PAYLOAD" -- the FSM sits in RX_PAYLOAD indefinitely waiting for the next valid byte. If the RTL adds a payload-watchdog, sub-case B must be updated to check the watchdog-driven abort instead. |
 | Status | planned |
 
-### R006_truncated_reset
+### R006_local_cmd_reset_racing_synclink
 
 | Field | Value |
 |-------|-------|
-| Category | payload truncation / parser resync |
-| Goal | CMD_RESET (16-bit mask payload) truncated mid-payload by loss_sync. Same properties as R005. |
+| Category | local_cmd / synclink arbitration (repurposed from the v26.1 payload-truncation case after 26.2 spec alignment made CMD_RESET a single-byte synclink signal) |
+| Goal | A CSR LOCAL_CMD write carrying `CMD_RESET` with an explicit assert_mask must not race with a concurrent synclink single-byte `0x30` in a way that corrupts RESET_MASK or leaves the hard_reset outputs inconsistent. |
 | Setup | Full reset. CONTROL masks both 0. |
-| Injection | 1. C0: valid=1, data=0x30, error=0. 2. C1: valid=1, payload byte 0 (low mask byte), error=0. 3. C2: valid=1, data=0x55, error={1,0,0} (loss_sync during second mask byte). 4. C3..C16: valid=0. 5. C17: valid=1, data=0x30, error=0. 6. C18..C19: valid=1, payload bytes 0xFF and 0xFF, error=0 (clean retry). |
-| Expected recovery | 1. First RESET: recv_state -> RX_PAYLOAD -> LOG_ERROR -> IDLE. dp_hard_reset and ct_hard_reset are NOT asserted. RESET_MASK[15:0] unchanged. 2. RX_ERR_COUNT=1. 3. Second RESET processes normally: RESET_MASK[15:0]=0xFFFF, dp_hard_reset=1, ct_hard_reset=1 (masks both 0). |
-| Coverage bins | `cov_err.truncated_cmd[RESET]++`, `cov_err.loss_sync_during_pause++`. |
-| Pass criteria | (a) no hang, (b) RX_ERR_COUNT=1, (c) hard_reset outputs match only the retry, (d) RX_CMD_COUNT=1 (only the retry). |
+| Injection | 1. Synclink C0: valid=1, data=0x30, error=0 (spec-compliant single-byte RESET). 2. AVMM write CSR_LOCAL_CMD = 0x12345630 at C0+1 (CMD_RESET with assert_mask=0x1234, `RESERVED`=0x56 ignored). 3. Wait 64 mm_clk for both paths to drain. |
+| Expected recovery | 1. Both paths enter RECV_LOGGING in order (synclink first, local_cmd second due to priority in RECV_IDLE). 2. Two LOG FIFO entries. 3. Final RESET_MASK[15:0]=0x1234 (from local_cmd overwriting the 0xFFFF broadcast from synclink). 4. dp_hard_reset=1 and ct_hard_reset=1 (both masks 0, both RESET commands asserted). 5. RX_CMD_COUNT=2. |
+| Coverage bins | `cov_err.local_cmd_reset_post_synclink_reset++`. |
+| Pass criteria | (a) no hang, (b) RX_CMD_COUNT=2, (c) RESET_MASK reflects the second (local_cmd) command, (d) hard_reset outputs remain asserted. |
 | Status | planned |
 
 ---

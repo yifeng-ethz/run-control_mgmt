@@ -15,12 +15,20 @@
 // mailbox is replaced by a word-addressed CSR block with an identity header.
 //
 // Author  : Yifeng Wang (yifenwan@phys.ethz.ch)
-// Version : 26.1.0
-// Date    : 20260413
-// Change  : Added ext_hard_reset reset-source conduit for external subsystems.
-//           RESET/STOP_RESET now drive local dp/ct resets plus an exported
-//           subsystem-level hard reset, while preserving the existing CSR and
-//           synclink/runctl/upload behavior from the SystemVerilog rewrite.
+// Version : 26.2.0
+// Date    : 20260416
+// Change  : 26.2.0 — align synclink CMD_RESET / CMD_STOP_RESET with the Mu3e
+//                     SpecBook section 4.6.2 single-byte reset-distribution
+//                     contract. payload_len_lut returns 0 for these opcodes
+//                     (instead of 2); the recv FSM now transitions directly
+//                     IDLE -> LOGGING on the opcode byte with no per-packet
+//                     mask fields. The local_cmd path still accepts an
+//                     optional assert/release mask via CSR_LOCAL_CMD for
+//                     software-driven per-channel reset selection.
+//           26.1.0 — Added ext_hard_reset reset-source conduit for external
+//                     subsystems. RESET/STOP_RESET drive local dp/ct resets
+//                     plus an exported subsystem-level hard reset, while
+//                     preserving CSR and synclink/runctl/upload behavior.
 
 `timescale 1 ps / 1 ps
 
@@ -32,10 +40,10 @@ module runctl_mgmt_host #(
     // Identity header (integration-overridable)
     parameter logic [31:0] IP_UID         = 32'h5243_4D48, // ASCII "RCMH"
     parameter logic [7:0]  VERSION_MAJOR  = 8'd26,
-    parameter logic [7:0]  VERSION_MINOR  = 8'd1,
+    parameter logic [7:0]  VERSION_MINOR  = 8'd2,
     parameter logic [3:0]  VERSION_PATCH  = 4'd0,
-    parameter logic [11:0] BUILD          = 12'h413,     // MMDD = 0413
-    parameter logic [31:0] VERSION_DATE   = 32'h2026_0413,
+    parameter logic [11:0] BUILD          = 12'h416,     // MMDD = 0416
+    parameter logic [31:0] VERSION_DATE   = 32'h2026_0416,
     parameter logic [31:0] VERSION_GIT    = 32'h0,
     parameter logic [31:0] INSTANCE_ID    = 32'h0
 )(
@@ -293,12 +301,16 @@ module runctl_mgmt_host #(
     // ============================================================
     // Payload length decode
     // ============================================================
+    // Mu3e SpecBook §4.6.2 "Run Start Sequence": only RUN_PREPARE carries a
+    // payload (run_number) on the reset-distribution wire. SYNC / START / STOP
+    // and RESET / STOP_RESET are single-byte signals. CMD_ADDRESS is a local
+    // extension for per-FEB address assignment (kept as 2-byte payload).
     function automatic logic [3:0] payload_len_lut (input logic [7:0] cmd);
         case (cmd)
             CMD_RUN_PREPARE: payload_len_lut = 4'd4;
-            CMD_RESET:       payload_len_lut = 4'd2;
-            CMD_STOP_RESET:  payload_len_lut = 4'd2;
             CMD_ADDRESS:     payload_len_lut = 4'd2;
+            CMD_RESET,
+            CMD_STOP_RESET,
             CMD_RUN_SYNC,
             CMD_START_RUN,
             CMD_END_RUN,
@@ -443,6 +455,14 @@ module runctl_mgmt_host #(
                             recv_payload_len        <= payload_len_lut(asi_synclink_data[7:0]);
                             recv_payload_cnt        <= 4'd0;
                             recv_payload32          <= 32'd0;
+                            // Spec-aligned broadcast masks for single-byte
+                            // CMD_RESET / CMD_STOP_RESET arriving via synclink.
+                            // The per-channel mask gating is still done in the
+                            // hard-reset generator against CSR rst_mask_dp/ct.
+                            if (asi_synclink_data[7:0] == CMD_RESET)
+                                recv_reset_assert_mask  <= 16'hFFFF;
+                            if (asi_synclink_data[7:0] == CMD_STOP_RESET)
+                                recv_reset_release_mask <= 16'hFFFF;
                             if (!cmd_is_known(asi_synclink_data[7:0])) begin
                                 // Unknown byte: drop silently, return to IDLE.
                                 recv_state <= RECV_CLEANUP;

@@ -120,8 +120,8 @@
 
 | Bits | Field | Source |
 |------|-------|--------|
-| 15:0  | last_reset_assert_mask  | payload of the most recent CMD_RESET (0x30) |
-| 31:16 | last_reset_release_mask | payload of the most recent CMD_STOP_RESET (0x31) |
+| 15:0  | last_reset_assert_mask  | last CMD_RESET (0x30): 0xFFFF for synclink broadcast, or CSR_LOCAL_CMD [23:8] for local_cmd path |
+| 31:16 | last_reset_release_mask | last CMD_STOP_RESET (0x31): 0xFFFF for synclink broadcast, or CSR_LOCAL_CMD [23:8] for local_cmd path |
 
 ### 3.6 Log entry layout (4 sub-words per command, popped via LOG_POP)
 
@@ -143,8 +143,8 @@
 | 0x12 | START_RUN     | none | Fanout only |
 | 0x13 | END_RUN       | none | Generates upload ack with K29.7 (0xFD) |
 | 0x14 | ABORT_RUN     | none | Fanout only |
-| 0x30 | RESET         | 16b assert mask | Asserts exported `ext_hard_reset`; drives local `dp_hard_reset` / `ct_hard_reset` subject to the CONTROL mask bits |
-| 0x31 | STOP_RESET    | 16b release mask | Deasserts exported `ext_hard_reset`; releases local `dp_hard_reset` / `ct_hard_reset` subject to the CONTROL mask bits |
+| 0x30 | RESET         | **synclink: none** (broadcast, spec-aligned with Mu3e SpecBook §4.6.2); `local_cmd`: optional 16b assert mask in the upper 24b of CSR_LOCAL_CMD | Asserts exported `ext_hard_reset`; drives local `dp_hard_reset` / `ct_hard_reset` subject to the CONTROL mask bits. Synclink path latches `assert_mask = 0xFFFF` (all channels). |
+| 0x31 | STOP_RESET    | **synclink: none** (broadcast, spec-aligned with Mu3e SpecBook §4.6.2); `local_cmd`: optional 16b release mask in the upper 24b of CSR_LOCAL_CMD | Deasserts exported `ext_hard_reset`; releases local `dp_hard_reset` / `ct_hard_reset` subject to the CONTROL mask bits. Synclink path latches `release_mask = 0xFFFF`. |
 | 0x32 | ENABLE        | none | Fanout only |
 | 0x33 | DISABLE       | none | Fanout only |
 | 0x40 | ADDRESS       | 16b fpga address | Latches CSR.FPGA_ADDRESS only; does NOT fan out on runctl |
