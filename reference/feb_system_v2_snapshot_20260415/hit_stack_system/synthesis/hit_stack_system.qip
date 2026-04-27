@@ -1,0 +1,177 @@
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_TOOL_NAME "Qsys"
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_TOOL_VERSION "18.1"
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_TOOL_ENV "Qsys"
+set_global_assignment -library "hit_stack_system" -name SOPCINFO_FILE [file join $::quartus(qip_path) "../../hit_stack_system.sopcinfo"]
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name SLD_INFO "QSYS_NAME hit_stack_system HAS_SOPCINFO 1 GENERATION_ID 1777034081"
+set_global_assignment -library "hit_stack_system" -name MISC_FILE [file join $::quartus(qip_path) "../hit_stack_system.cmp"]
+set_global_assignment -library "hit_stack_system" -name SLD_FILE [file join $::quartus(qip_path) "hit_stack_system.debuginfo"]
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_TARGETED_DEVICE_FAMILY "Arria V"
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_GENERATED_DEVICE_FAMILY "{Arria V}"
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_QSYS_MODE "SYSTEM"
+set_global_assignment -name SYNTHESIS_ONLY_QIP ON
+set_global_assignment -library "hit_stack_system" -name MISC_FILE [file join $::quartus(qip_path) "../../hit_stack_system.qsys"]
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_NAME "aGl0X3N0YWNrX3N5c3RlbQ=="
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_DISPLAY_NAME "aGl0X3N0YWNrX3N5c3RlbQ=="
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_REPORT_HIERARCHY "On"
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_INTERNAL "Off"
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_VERSION "MS4w"
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QVVUT19HRU5FUkFUSU9OX0lE::MTc3NzAzNDA4MQ==::QXV0byBHRU5FUkFUSU9OX0lE"
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QVVUT19ERVZJQ0VfRkFNSUxZ::QXJyaWEgVg==::QXV0byBERVZJQ0VfRkFNSUxZ"
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QVVUT19ERVZJQ0U=::NUFHWEJBN0Q0RjMxQzU=::QXV0byBERVZJQ0U="
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QVVUT19ERVZJQ0VfU1BFRURHUkFERQ==::NV9INA==::QXV0byBERVZJQ0VfU1BFRURHUkFERQ=="
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QVVUT19EQVRBUEFUSF9DTE9DS19DTE9DS19SQVRF::LTE=::QXV0byBDTE9DS19SQVRF"
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QVVUT19EQVRBUEFUSF9DTE9DS19DTE9DS19ET01BSU4=::LTE=::QXV0byBDTE9DS19ET01BSU4="
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QVVUT19EQVRBUEFUSF9DTE9DS19SRVNFVF9ET01BSU4=::LTE=::QXV0byBSRVNFVF9ET01BSU4="
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QVVUT19YQ1ZSX0NMT0NLX0NMT0NLX1JBVEU=::LTE=::QXV0byBDTE9DS19SQVRF"
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QVVUT19YQ1ZSX0NMT0NLX0NMT0NLX0RPTUFJTg==::LTE=::QXV0byBDTE9DS19ET01BSU4="
+set_global_assignment -entity "hit_stack_system" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QVVUT19YQ1ZSX0NMT0NLX1JFU0VUX0RPTUFJTg==::LTE=::QXV0byBSRVNFVF9ET01BSU4="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_NAME "YWx0ZXJhX3Jlc2V0X2NvbnRyb2xsZXI="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_DISPLAY_NAME "TWVybGluIFJlc2V0IENvbnRyb2xsZXI="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_REPORT_HIERARCHY "Off"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_INTERNAL "Off"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_AUTHOR "QWx0ZXJhIENvcnBvcmF0aW9u"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_VERSION "MTguMQ=="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_DESCRIPTION "Rm9yIHN5c3RlbXMgd2l0aCBtdWx0aXBsZSByZXNldCBpbnB1dHMsIHRoZSBNZXJsaW4gUmVzZXQgQ29udHJvbGxlciBPUnMgYWxsIHJlc2V0IGlucHV0cyBhbmQgZ2VuZXJhdGVzIGEgc2luZ2xlIHJlc2V0IG91dHB1dC4="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "TlVNX1JFU0VUX0lOUFVUUw==::MQ==::TnVtYmVyIG9mIGlucHV0cw=="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "T1VUUFVUX1JFU0VUX1NZTkNfRURHRVM=::ZGVhc3NlcnQ=::T3V0cHV0IFJlc2V0IFN5bmNocm9ub3VzIEVkZ2Vz"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "U1lOQ19ERVBUSA==::Mg==::U3luY2hyb25pemVyIGRlcHRo"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "UkVTRVRfUkVRVUVTVF9QUkVTRU5U::MA==::UmVzZXQgcmVxdWVzdCBsb2dpYyBlbmFibGU="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "UkVTRVRfUkVRX1dBSVRfVElNRQ==::MQ==::UmVzZXQgcmVxdWVzdCB3YWl0IHRpbWU="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "TUlOX1JTVF9BU1NFUlRJT05fVElNRQ==::Mw==::TWluaW11bSByZXNldCBhc3NlcnRpb24gdGltZQ=="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "UkVTRVRfUkVRX0VBUkxZX0RTUlRfVElNRQ==::MQ==::UmVzZXQgcmVxdWVzdCBkZWFzc2VydCB0aW1pbmc="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU4w::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjA="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU4x::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjE="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU4y::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjI="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU4z::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjM="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU40::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjQ="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU41::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjU="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU42::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjY="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU43::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjc="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU44::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjg="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU45::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjk="
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU4xMA==::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjEw"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU4xMQ==::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjEx"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU4xMg==::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjEy"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU4xMw==::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjEz"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU4xNA==::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjE0"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU4xNQ==::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcG9ydCByZXNldF9pbjE1"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFU0VUX1JFUVVFU1RfSU5QVVQ=::MA==::RW5hYmxlIHJlc2V0X3JlcSBmb3IgcmVzZXRfaW5wdXRz"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QURBUFRfUkVTRVRfUkVRVUVTVA==::MA==::T25seSBhZGFwdCBvbmx5IHJlc2V0IHJlcXVlc3Q="
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_NAME "YWx0ZXJhX2F2YWxvbl9kY19maWZv"
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_DISPLAY_NAME "QXZhbG9uLVNUIER1YWwgQ2xvY2sgRklGTw=="
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_REPORT_HIERARCHY "Off"
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_INTERNAL "Off"
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_AUTHOR "QWx0ZXJhIENvcnBvcmF0aW9u"
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_VERSION "MTguMQ=="
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "U1lNQk9MU19QRVJfQkVBVA==::MQ==::U3ltYm9scyBwZXIgYmVhdA=="
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QklUU19QRVJfU1lNQk9M::OQ==::Qml0cyBwZXIgc3ltYm9s"
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "RklGT19ERVBUSA==::MTY=::RklGTyBkZXB0aA=="
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "Q0hBTk5FTF9XSURUSA==::MA==::Q2hhbm5lbCB3aWR0aA=="
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "RVJST1JfV0lEVEg=::MA==::RXJyb3Igd2lkdGg="
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1BBQ0tFVFM=::MA==::VXNlIHBhY2tldHM="
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX0lOX0ZJTExfTEVWRUw=::MA==::VXNlIHNpbmsgZmlsbCBsZXZlbA=="
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX09VVF9GSUxMX0xFVkVM::MA==::VXNlIHNvdXJjZSBmaWxsIGxldmVs"
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "V1JfU1lOQ19ERVBUSA==::Mw==::V3JpdGUgcG9pbnRlciBzeW5jaHJvbml6ZXIgbGVuZ3Ro"
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "UkRfU1lOQ19ERVBUSA==::Mw==::UmVhZCBwb2ludGVyIHN5bmNocm9uaXplciBsZW5ndGg="
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "RU5BQkxFX0VYUExJQ0lUX01BWENIQU5ORUw=::ZmFsc2U=::RW5hYmxlIGV4cGxpY2l0IG1heENoYW5uZWw="
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "RVhQTElDSVRfTUFYQ0hBTk5FTA==::MA==::RXhwbGljaXQgbWF4Q2hhbm5lbA=="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_NAME "cmluZ19idWZmZXJfY2Ft"
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_DISPLAY_NAME "UmluZy1idWZmZXIgQ0FN"
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_REPORT_HIERARCHY "Off"
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_INTERNAL "Off"
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_AUTHOR "WWlmZW5nIFdhbmc="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_VERSION "MjYuMi42LjQyMg=="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_DESCRIPTION "UmluZy1idWZmZXIgQ0FNIE11M2UgSVAgQ29yZQ=="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "U0VBUkNIX0tFWV9XSURUSA==::OA==::U2VhcmNoIEtleSBXaWR0aA=="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "UklOR19CVUZGRVJfTl9FTlRSWQ==::NTEy::UmluZyBEZXB0aA=="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "U0lERV9EQVRBX0JJVFM=::MzE=::U2lkZSBEYXRhIFdpZHRo"
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "SU5URVJMRUFWSU5HX0ZBQ1RPUg==::NA==::SW50ZXJsZWF2aW5nIEZhY3Rvcg=="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "SU5URVJMRUFWSU5HX0lOREVY::MA==::SW50ZXJsZWF2aW5nIEluZGV4"
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "Tl9QQVJUSVRJT05T::NA==::UGh5c2ljYWwgTWF0Y2ggUGFydGl0aW9ucw=="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "RU5DT0RFUl9MRUFGX1dJRFRI::MTY=::RW5jb2RlciBMZWFmIFdpZHRo"
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "RU5DT0RFUl9QSVBFX1NUQUdFUw==::NA==::RW5jb2RlciBQaXBlIFN0YWdlcw=="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "REVCVUc=::MQ==::RGVidWcgTGV2ZWw="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "SVBfVUlE::MTM4MDA3NDMxNw==::VUlE"
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "SU5TVEFOQ0VfSUQ=::MA==::SW5zdGFuY2UgSUQ="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "UEFSVElUSU9OX0RFUFRIX0RFUklWRUQ=::MTI4::UEFSVElUSU9OX0RFUFRIX0RFUklWRUQ="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "RU5UUllfQUREUl9XX0RFUklWRUQ=::OQ==::RU5UUllfQUREUl9XX0RFUklWRUQ="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "UEFSVElUSU9OX0FERFJfV19ERVJJVkVE::Nw==::UEFSVElUSU9OX0FERFJfV19ERVJJVkVE"
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "SU5URVJMRUFWSU5HX0JJVFNfREVSSVZFRA==::Mg==::SU5URVJMRUFWSU5HX0JJVFNfREVSSVZFRA=="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "RU5UUllfUEFZTE9BRF9CSVRTX0RFUklWRUQ=::Mzk=::RU5UUllfUEFZTE9BRF9CSVRTX0RFUklWRUQ="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "Q0FNX1NUT1JFX0JJVFNfREVSSVZFRA==::NDA5Ng==::Q0FNX1NUT1JFX0JJVFNfREVSSVZFRA=="
+set_global_assignment -entity "ring_buffer_cam" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "U0lERV9TVE9SRV9CSVRTX0RFUklWRUQ=::MjA0ODA=::U0lERV9TVE9SRV9CSVRTX0RFUklWRUQ="
+set_global_assignment -entity "feb_frame_assembly" -library "hit_stack_system" -name IP_COMPONENT_NAME "ZmViX2ZyYW1lX2Fzc2VtYmx5"
+set_global_assignment -entity "feb_frame_assembly" -library "hit_stack_system" -name IP_COMPONENT_DISPLAY_NAME "RkVCIChGcm9udC1lbmQgQm9hcmQpIEZyYW1lIEFzc2VtYmx5"
+set_global_assignment -entity "feb_frame_assembly" -library "hit_stack_system" -name IP_COMPONENT_REPORT_HIERARCHY "Off"
+set_global_assignment -entity "feb_frame_assembly" -library "hit_stack_system" -name IP_COMPONENT_INTERNAL "Off"
+set_global_assignment -entity "feb_frame_assembly" -library "hit_stack_system" -name IP_COMPONENT_AUTHOR "WWlmZW5nIFdhbmc="
+set_global_assignment -entity "feb_frame_assembly" -library "hit_stack_system" -name IP_COMPONENT_VERSION "MjYuMC4zMjg="
+set_global_assignment -entity "feb_frame_assembly" -library "hit_stack_system" -name IP_COMPONENT_DESCRIPTION "R2VuZXJhdGVzIHRoZSBNdTNlIHN0YW5kYXJkIGRhdGEgZnJhbWUgZ2l2ZW4gaW5wdXQgb2Ygc3ViLWZyYW1lcyBvZiBtdWx0aXBsZSByaW5nLUNBTShzKQ=="
+set_global_assignment -entity "feb_frame_assembly" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "SU5URVJMRUFWSU5HX0ZBQ1RPUg==::NA==::SW50ZXJsZWF2aW5nIGZhY3Rvcg=="
+set_global_assignment -entity "feb_frame_assembly" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "Tl9TSEQ=::MTI4::TnVtYmVyIG9mIFN1YmhlYWRlciBQYWNrZXRzIEJldHdlZW4gSGVhZGVyIFBhY2tldHM="
+set_global_assignment -entity "feb_frame_assembly" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "REVCVUc=::MQ==::RGVidWcgTGV2ZWw="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_NAME "YWx0ZXJhX2F2YWxvbl9zdF9zcGxpdHRlcg=="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_DISPLAY_NAME "QXZhbG9uLVNUIFNwbGl0dGVy"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_REPORT_HIERARCHY "Off"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_INTERNAL "Off"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_AUTHOR "QWx0ZXJhIENvcnBvcmF0aW9u"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_VERSION "MTguMQ=="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_DESCRIPTION "QXZhbG9uLVNUIFNwbGl0dGVy"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "TlVNQkVSX09GX09VVFBVVFM=::NA==::TlVNQkVSX09GX09VVFBVVFM="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "UVVBTElGWV9WQUxJRF9PVVQ=::MA==::UVVBTElGWV9WQUxJRF9PVVQ="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1JFQURZ::MQ==::VVNFX1JFQURZ"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1ZBTElE::MQ==::VVNFX1ZBTElE"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX1BBQ0tFVFM=::MQ==::VVNFX1BBQ0tFVFM="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX0NIQU5ORUw=::MQ==::VVNFX0NIQU5ORUw="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX0VSUk9S::MQ==::VVNFX0VSUk9S"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "VVNFX0RBVEE=::MQ==::VVNFX0RBVEE="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "REFUQV9XSURUSA==::Mzk=::REFUQV9XSURUSA=="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "Q0hBTk5FTF9XSURUSA==::NA==::Q0hBTk5FTF9XSURUSA=="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "RVJST1JfV0lEVEg=::MQ==::RVJST1JfV0lEVEg="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "QklUU19QRVJfU1lNQk9M::Mzk=::QklUU19QRVJfU1lNQk9M"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "TUFYX0NIQU5ORUxT::MTU=::TUFYX0NIQU5ORUxT"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "UkVBRFlfTEFURU5DWQ==::MA==::UkVBRFlfTEFURU5DWQ=="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "RVJST1JfREVTQ1JJUFRPUg==::dHNlcnI=::RVJST1JfREVTQ1JJUFRPUg=="
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_COMPONENT_PARAMETER "RU1QVFlfV0lEVEg=::MQ==::RU1QVFlfV0lEVEg="
+
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "hit_stack_system.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "hit_stack_system_data_splitter_0.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "hit_stack_system_run_control_splitter_0.vhd"]
+set_global_assignment -library "hit_stack_system" -name VERILOG_FILE [file join $::quartus(qip_path) "submodules/altera_reset_controller.v"]
+set_global_assignment -library "hit_stack_system" -name VERILOG_FILE [file join $::quartus(qip_path) "submodules/altera_reset_synchronizer.v"]
+set_global_assignment -library "hit_stack_system" -name SDC_FILE [file join $::quartus(qip_path) "submodules/altera_reset_controller.sdc"]
+set_global_assignment -library "hit_stack_system" -name VERILOG_FILE [file join $::quartus(qip_path) "submodules/altera_avalon_dc_fifo.v"]
+set_global_assignment -library "hit_stack_system" -name VERILOG_FILE [file join $::quartus(qip_path) "submodules/altera_dcfifo_synchronizer_bundle.v"]
+set_global_assignment -library "hit_stack_system" -name VERILOG_FILE [file join $::quartus(qip_path) "submodules/altera_std_synchronizer_nocut.v"]
+set_global_assignment -library "hit_stack_system" -name SDC_FILE [file join $::quartus(qip_path) "submodules/altera_avalon_dc_fifo.sdc"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/ring_buffer_cam.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/ring_buffer_cam_v2_core.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/cam_helper_pkg.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/alt_simple_dpram.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/cam_mem_a5.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/cam_mem_blk_a5.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/alt_fifo/scfifo_w40d256.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/alt_fifo/cmd_fifo/cmd_fifo.vhd"]
+set_global_assignment -library "hit_stack_system" -name VERILOG_FILE [file join $::quartus(qip_path) "submodules/b2o_encoder.v"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/addr_enc_logic_small.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/addr_enc_logic_partitioned.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/feb_frame_assembly.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/alt_dcfifo_w40d256_patched.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/alt_dcfifo_w40d256.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/alt_dcfifo_w48d4.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/alt_scfifo_w40d8.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/main_fifo.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/alt_parallel_add.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/search_for_extreme.vhd"]
+set_global_assignment -library "hit_stack_system" -name VHDL_FILE [file join $::quartus(qip_path) "submodules/search_for_extreme3.vhd"]
+set_global_assignment -library "hit_stack_system" -name SYSTEMVERILOG_FILE [file join $::quartus(qip_path) "submodules/altera_avalon_st_splitter.sv"]
+
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_TOOL_NAME "altera_reset_controller"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_TOOL_VERSION "18.1"
+set_global_assignment -entity "altera_reset_controller" -library "hit_stack_system" -name IP_TOOL_ENV "Qsys"
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_TOOL_NAME "altera_avalon_dc_fifo"
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_TOOL_VERSION "18.1"
+set_global_assignment -entity "altera_avalon_dc_fifo" -library "hit_stack_system" -name IP_TOOL_ENV "Qsys"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_TOOL_NAME "altera_avalon_st_splitter"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_TOOL_VERSION "18.1"
+set_global_assignment -entity "altera_avalon_st_splitter" -library "hit_stack_system" -name IP_TOOL_ENV "Qsys"

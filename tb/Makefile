@@ -1,19 +1,4 @@
-QUESTA_HOME ?= /data1/intelFPGA_pro/23.1/questa_fse
-QUESTA_LICENSE := $(firstword $(wildcard $(QUESTA_HOME)/LR-*_License.dat /data1/intelFPGA/LR-*_License.dat))
-ETH_LIC_SERVER := 8161@lic-mentor.ethz.ch
-TB_LICENSE_CHAIN := $(ETH_LIC_SERVER)
-ifneq ($(wildcard $(QUESTA_LICENSE)),)
-TB_LICENSE_CHAIN := $(ETH_LIC_SERVER):$(QUESTA_LICENSE)
-endif
-
-export LM_LICENSE_FILE := $(TB_LICENSE_CHAIN)
-export MGLS_LICENSE_FILE := $(TB_LICENSE_CHAIN)
-
-VLIB = $(firstword $(wildcard $(QUESTA_HOME)/bin/vlib $(QUESTA_HOME)/linux_x86_64/vlib))
-VMAP = $(firstword $(wildcard $(QUESTA_HOME)/bin/vmap $(QUESTA_HOME)/linux_x86_64/vmap))
-VCOM = $(firstword $(wildcard $(QUESTA_HOME)/bin/vcom $(QUESTA_HOME)/linux_x86_64/vcom))
-VLOG = $(firstword $(wildcard $(QUESTA_HOME)/bin/vlog $(QUESTA_HOME)/linux_x86_64/vlog))
-VSIM = $(firstword $(wildcard $(QUESTA_HOME)/bin/vsim $(QUESTA_HOME)/linux_x86_64/vsim))
+include ../../scripts/questa_one.mk
 
 IP_ROOT     := $(abspath ..)
 TB_ROOT     := $(abspath .)
@@ -22,12 +7,14 @@ TB_UVM_DIR  := $(TB_ROOT)/uvm
 WORK_DIR    := $(TB_ROOT)/work_runctl_uvm
 GATE_WORK_DIR := $(TB_ROOT)/work_runctl_gate
 LOG_DIR     := $(TB_ROOT)/logs
-UVM_HOME    := $(firstword $(wildcard $(QUESTA_HOME)/verilog_src/uvm-1.2 $(QUESTA_HOME)/uvm-1.2))
-INTEL_LIBS  := $(firstword $(wildcard $(QUESTA_HOME)/intel/vhdl $(QUESTA_HOME)/../questa_fse/intel/vhdl))
+MODELSIM_INI := modelsim.ini
+UVM_HOME    := $(QUESTA_UVM_HOME)
+INTEL_LIBS  := $(QUESTA_INTEL_VHDL_LIBS)
 UVM_SRC     := $(UVM_HOME)/src
 QUARTUS_HOME ?= /data1/intelFPGA/18.1/quartus
 GATE_SIM_DIR := $(IP_ROOT)/syn/quartus/gate_sim
 GATE_NETLIST := $(GATE_SIM_DIR)/runctl_mgmt_host_syn.vo
+DPI_CPP     ?= /usr/bin/gcc
 
 TEST ?= runctl_mgmt_host_smoke_test
 TB_TOP := tb_top
@@ -52,19 +39,20 @@ $(WORK_DIR)/.compiled: \
 	@rm -rf $(WORK_DIR)
 	@mkdir -p $(WORK_DIR) $(LOG_DIR)
 	@cd $(WORK_DIR) && $(VLIB) work
-	@cd $(WORK_DIR) && $(VMAP) -c > /dev/null
-	@cd $(WORK_DIR) && $(VMAP) -modelsimini modelsim.ini work work > /dev/null
-	@cd $(WORK_DIR) && $(VMAP) -modelsimini modelsim.ini altera_mf $(INTEL_LIBS)/altera_mf > /dev/null
-	@cd $(WORK_DIR) && $(VCOM) -modelsimini modelsim.ini -2008 -work work $(IP_ROOT)/altera_ip/logging_fifo.vhd
-	@cd $(WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work $(IP_ROOT)/rtl/runctl_mgmt_host.sv
-	@cd $(WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work $(TB_SIM_DIR)/common/runctl_mgmt_pkg.sv
-	@cd $(WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work $(TB_UVM_DIR)/ifs/synclink_if.sv
-	@cd $(WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work $(TB_UVM_DIR)/ifs/runctl_if.sv
-	@cd $(WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work $(TB_UVM_DIR)/ifs/upload_if.sv
-	@cd $(WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work $(TB_UVM_DIR)/ifs/csr_if.sv
-	@cd $(WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work $(TB_UVM_DIR)/ifs/reset_if.sv
-	@cd $(WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work $(TB_SIM_DIR)/runctl_mgmt_host_dut_wrapper.sv
-	@cd $(WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work +define+UVM_NO_DPI \
+	@cp $(QSIM_INI) $(WORK_DIR)/$(MODELSIM_INI)
+	@chmod u+w $(WORK_DIR)/$(MODELSIM_INI)
+	@cd $(WORK_DIR) && $(VMAP) -modelsimini $(MODELSIM_INI) work work > /dev/null
+	@cd $(WORK_DIR) && $(VMAP) -modelsimini $(MODELSIM_INI) altera_mf $(INTEL_LIBS)/altera_mf > /dev/null
+	@cd $(WORK_DIR) && $(VCOM) -modelsimini $(MODELSIM_INI) -2008 -work work $(IP_ROOT)/altera_ip/logging_fifo.vhd
+	@cd $(WORK_DIR) && $(VLOG) -modelsimini $(MODELSIM_INI) -sv -work work $(IP_ROOT)/rtl/runctl_mgmt_host.sv
+	@cd $(WORK_DIR) && $(VLOG) -modelsimini $(MODELSIM_INI) -sv -work work $(TB_SIM_DIR)/common/runctl_mgmt_pkg.sv
+	@cd $(WORK_DIR) && $(VLOG) -modelsimini $(MODELSIM_INI) -sv -work work $(TB_UVM_DIR)/ifs/synclink_if.sv
+	@cd $(WORK_DIR) && $(VLOG) -modelsimini $(MODELSIM_INI) -sv -work work $(TB_UVM_DIR)/ifs/runctl_if.sv
+	@cd $(WORK_DIR) && $(VLOG) -modelsimini $(MODELSIM_INI) -sv -work work $(TB_UVM_DIR)/ifs/upload_if.sv
+	@cd $(WORK_DIR) && $(VLOG) -modelsimini $(MODELSIM_INI) -sv -work work $(TB_UVM_DIR)/ifs/csr_if.sv
+	@cd $(WORK_DIR) && $(VLOG) -modelsimini $(MODELSIM_INI) -sv -work work $(TB_UVM_DIR)/ifs/reset_if.sv
+	@cd $(WORK_DIR) && $(VLOG) -modelsimini $(MODELSIM_INI) -sv -work work $(TB_SIM_DIR)/runctl_mgmt_host_dut_wrapper.sv
+	@cd $(WORK_DIR) && $(VLOG) -modelsimini $(MODELSIM_INI) -sv -work work \
 	  +incdir+$(UVM_SRC) +incdir+$(TB_SIM_DIR)/common +incdir+$(TB_UVM_DIR) +incdir+$(TB_UVM_DIR)/ifs \
 	  $(UVM_SRC)/uvm_pkg.sv \
 	  $(TB_UVM_DIR)/runctl_mgmt_env_pkg.sv \
@@ -73,8 +61,9 @@ $(WORK_DIR)/.compiled: \
 
 run_uvm_smoke: compile_uvm
 	@echo "=== Running $(TEST) ==="
-	@cd $(WORK_DIR) && $(VSIM) -modelsimini modelsim.ini -c -work work -L altera_mf \
-	  -suppress 19 -suppress 3009 -suppress 3473 -nodpiexports -voptargs=+acc \
+	@cd $(WORK_DIR) && $(VSIM) -modelsimini $(MODELSIM_INI) -c -work work -L altera_mf \
+	  -dpicpppath $(DPI_CPP) -sv_lib $(QUESTA_UVM_DPI_LIB) \
+	  -suppress 19 -suppress 3009 -suppress 3473 -voptargs=+acc \
 	  +UVM_TESTNAME=$(TEST) \
 	  $(TB_TOP) \
 	  -do "quietly set NumericStdNoWarnings 1; quietly set StdArithNoWarnings 1; run -all; quit -f" \
@@ -113,8 +102,9 @@ $(GATE_WORK_DIR)/.compiled: \
 	@rm -rf $(GATE_WORK_DIR)
 	@mkdir -p $(GATE_WORK_DIR) $(GATE_WORK_DIR)/verilog_libs $(LOG_DIR)
 	@cd $(GATE_WORK_DIR) && $(VLIB) work
-	@cd $(GATE_WORK_DIR) && $(VMAP) -c > /dev/null
-	@cd $(GATE_WORK_DIR) && $(VMAP) -modelsimini modelsim.ini work work > /dev/null
+	@cp $(QSIM_INI) $(GATE_WORK_DIR)/$(MODELSIM_INI)
+	@chmod u+w $(GATE_WORK_DIR)/$(MODELSIM_INI)
+	@cd $(GATE_WORK_DIR) && $(VMAP) -modelsimini $(MODELSIM_INI) work work > /dev/null
 	@cd $(GATE_WORK_DIR) && $(VLIB) verilog_libs/altera_lnsim_ver > /dev/null
 	@cd $(GATE_WORK_DIR) && $(VMAP) -modelsimini modelsim.ini altera_lnsim_ver verilog_libs/altera_lnsim_ver > /dev/null
 	@cd $(GATE_WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work altera_lnsim_ver $(QUARTUS_HOME)/eda/sim_lib/altera_lnsim.sv
@@ -151,7 +141,7 @@ $(GATE_WORK_DIR)/.compiled: \
 	@cd $(GATE_WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work $(TB_UVM_DIR)/ifs/reset_if.sv
 	@cd $(GATE_WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -vlog01compat -work work $(GATE_NETLIST)
 	@cd $(GATE_WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work $(TB_SIM_DIR)/runctl_mgmt_host_gate_dut_wrapper.sv
-	@cd $(GATE_WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work +define+UVM_NO_DPI \
+	@cd $(GATE_WORK_DIR) && $(VLOG) -modelsimini modelsim.ini -sv -work work \
 	  +incdir+$(UVM_SRC) +incdir+$(TB_SIM_DIR)/common +incdir+$(TB_UVM_DIR) +incdir+$(TB_UVM_DIR)/ifs \
 	  $(UVM_SRC)/uvm_pkg.sv \
 	  $(TB_UVM_DIR)/runctl_mgmt_env_pkg.sv \
@@ -163,7 +153,8 @@ run_gate_uvm_smoke: compile_gate_uvm
 	@cd $(GATE_WORK_DIR) && $(VSIM) -modelsimini modelsim.ini -c -work work \
 	  -L altera_lnsim_ver -L altera_ver -L lpm_ver -L sgate_ver -L altera_mf_ver \
 	  -L arriav_ver -L arriav_hssi_ver -L arriav_pcie_hip_ver \
-	  -suppress 19 -suppress 3009 -suppress 3473 -nodpiexports -voptargs=+acc \
+	  -dpicpppath $(DPI_CPP) -sv_lib $(QUESTA_UVM_DPI_LIB) \
+	  -suppress 19 -suppress 3009 -suppress 3473 -voptargs=+acc \
 	  +UVM_TESTNAME=$(TEST) \
 	  $(TB_TOP) \
 	  -do "quietly set NumericStdNoWarnings 1; quietly set StdArithNoWarnings 1; run -all; quit -f" \

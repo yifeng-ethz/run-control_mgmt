@@ -26,6 +26,8 @@ package runctl_mgmt_env_pkg;
     byte unsigned cmd_byte;
     byte unsigned payload_q[$];
     bit [2:0]     error_q[$];
+    bit           use_raw_symbols;
+    logic [8:0]   raw_symbol_q[$];
     int unsigned  tail_idle_cycles = 1;
 
     function new(string name = "runctl_synclink_item");
@@ -116,29 +118,40 @@ package runctl_mgmt_env_pkg;
     endfunction
 
     task automatic drive_item(runctl_synclink_item item);
-      vif.data  = {1'b0, item.cmd_byte};
-      if (item.error_q.size() > 0)
-        vif.error = item.error_q[0];
-      else
-        vif.error = 3'b000;
-      @(posedge vif.clk);
-
-      foreach (item.payload_q[idx]) begin
-        vif.data = {1'b0, item.payload_q[idx]};
-        if ((idx + 1) < item.error_q.size())
-          vif.error = item.error_q[idx + 1];
+      if (item.use_raw_symbols && item.raw_symbol_q.size() > 0) begin
+        foreach (item.raw_symbol_q[idx]) begin
+          vif.data = item.raw_symbol_q[idx];
+          if (idx < item.error_q.size())
+            vif.error = item.error_q[idx];
+          else
+            vif.error = 3'b000;
+          @(posedge vif.clk);
+        end
+      end else begin
+        vif.data  = {1'b0, item.cmd_byte};
+        if (item.error_q.size() > 0)
+          vif.error = item.error_q[0];
         else
           vif.error = 3'b000;
         @(posedge vif.clk);
+
+        foreach (item.payload_q[idx]) begin
+          vif.data = {1'b0, item.payload_q[idx]};
+          if ((idx + 1) < item.error_q.size())
+            vif.error = item.error_q[idx + 1];
+          else
+            vif.error = 3'b000;
+          @(posedge vif.clk);
+        end
       end
 
-      vif.data  = 9'h100;
+      vif.data  = SYNCLINK_IDLE_COMMA;
       vif.error = '0;
       repeat (item.tail_idle_cycles) @(posedge vif.clk);
     endtask
 
     task run_phase(uvm_phase phase);
-      vif.data  = 9'h100;
+      vif.data  = SYNCLINK_IDLE_COMMA;
       vif.error = '0;
       forever begin
         seq_item_port.get_next_item(req);
@@ -382,7 +395,9 @@ package runctl_mgmt_env_pkg;
 
     function void write_runctl(runctl_runctl_obs t);
       runctl_runctl_obs clone_obs;
-      $cast(clone_obs, t.clone());
+      clone_obs = runctl_runctl_obs::type_id::create("clone_obs");
+      clone_obs.data = t.data;
+      clone_obs.sample_time_ps = t.sample_time_ps;
       runctl_count++;
       runctl_q.push_back(clone_obs);
       -> runctl_ev;
@@ -390,7 +405,11 @@ package runctl_mgmt_env_pkg;
 
     function void write_upload(runctl_upload_obs t);
       runctl_upload_obs clone_obs;
-      $cast(clone_obs, t.clone());
+      clone_obs = runctl_upload_obs::type_id::create("clone_obs");
+      clone_obs.data = t.data;
+      clone_obs.startofpacket = t.startofpacket;
+      clone_obs.endofpacket = t.endofpacket;
+      clone_obs.sample_time_ps = t.sample_time_ps;
       upload_count++;
       upload_q.push_back(clone_obs);
       -> upload_ev;
@@ -398,7 +417,11 @@ package runctl_mgmt_env_pkg;
 
     function void write_reset(runctl_reset_obs t);
       runctl_reset_obs clone_obs;
-      $cast(clone_obs, t.clone());
+      clone_obs = runctl_reset_obs::type_id::create("clone_obs");
+      clone_obs.dp_hard_reset = t.dp_hard_reset;
+      clone_obs.ct_hard_reset = t.ct_hard_reset;
+      clone_obs.ext_hard_reset = t.ext_hard_reset;
+      clone_obs.sample_time_ps = t.sample_time_ps;
       reset_count++;
       reset_q.push_back(clone_obs);
       -> reset_ev;
@@ -457,6 +480,8 @@ package runctl_mgmt_env_pkg;
     byte unsigned cmd_byte;
     byte unsigned payload_bytes[$];
     bit [2:0]     error_bytes[$];
+    bit           use_raw_symbols;
+    logic [8:0]   raw_symbols[$];
     int unsigned  tail_idle_cycles = 1;
 
     function new(string name = "runctl_synclink_cmd_seq");
@@ -469,6 +494,8 @@ package runctl_mgmt_env_pkg;
       item.cmd_byte         = cmd_byte;
       item.payload_q        = payload_bytes;
       item.error_q          = error_bytes;
+      item.use_raw_symbols  = use_raw_symbols;
+      item.raw_symbol_q     = raw_symbols;
       item.tail_idle_cycles = tail_idle_cycles;
       start_item(item);
       finish_item(item);
@@ -522,6 +549,7 @@ package runctl_mgmt_env_pkg;
 
     runctl_mgmt_env     env;
     runctl_mgmt_env_cfg cfg;
+    virtual runctl_if   runctl_ctl_vif;
 
     function new(string name = "runctl_mgmt_host_base_test", uvm_component parent = null);
       super.new(name, parent);
@@ -531,58 +559,113 @@ package runctl_mgmt_env_pkg;
       super.build_phase(phase);
       cfg = runctl_mgmt_env_cfg::type_id::create("cfg");
       uvm_config_db#(runctl_mgmt_env_cfg)::set(this, "env", "cfg", cfg);
+      if (!uvm_config_db#(virtual runctl_if)::get(this, "", "runctl_ctl_vif", runctl_ctl_vif)) begin
+        `uvm_fatal(get_type_name(), "Missing runctl_if control handle")
+      end
       env = runctl_mgmt_env::type_id::create("env", this);
     endfunction
 
+    task automatic csr_read_once(logic [4:0] address, output logic [31:0] readdata);
+      runctl_csr_read_seq csr_read_seq;
+      csr_read_seq = runctl_csr_read_seq::type_id::create($sformatf("csr_read_%0d", address));
+      csr_read_seq.address = address;
+      csr_read_seq.start(env.csr_agent.seqr);
+      readdata = csr_read_seq.readdata;
+    endtask
+
+    task automatic wait_for_csr_mask(logic [4:0] address,
+                                     logic [31:0] mask,
+                                     logic [31:0] expected,
+                                     int unsigned timeout_cycles,
+                                     string label);
+      logic [31:0] readdata;
+      repeat (timeout_cycles) begin
+        csr_read_once(address, readdata);
+        if ((readdata & mask) === expected)
+          return;
+        @(posedge env.csr_agent.driver.vif.clk);
+      end
+
+      csr_read_once(address, readdata);
+      `uvm_fatal(get_type_name(),
+                 $sformatf("%s: CSR[0x%02h] mask=0x%08h expected=0x%08h got=0x%08h",
+                           label, address, mask, expected, readdata))
+    endtask
+
+    task automatic dump_local_cmd_debug(string label);
+      uvm_hdl_data_t req_mm, ack_mm_sync, busy_mm;
+      uvm_hdl_data_t req_lvds_sync, req_lvds_seen, ack_lvds;
+      uvm_hdl_data_t pending_lvds, consume_lvds, recv_state_dbg, host_state_dbg;
+      string         msg;
+
+      if (!uvm_hdl_read("tb_top.dut.dut.local_cmd_req_mm", req_mm)) begin
+        `uvm_warning(get_type_name(), {label, ": failed to read local_cmd_req_mm"})
+        return;
+      end
+
+      void'(uvm_hdl_read("tb_top.dut.dut.local_cmd_ack_mm_sync", ack_mm_sync));
+      void'(uvm_hdl_read("tb_top.dut.dut.local_cmd_busy_mm", busy_mm));
+      void'(uvm_hdl_read("tb_top.dut.dut.local_cmd_req_lvds_sync", req_lvds_sync));
+      void'(uvm_hdl_read("tb_top.dut.dut.local_cmd_req_lvds_seen", req_lvds_seen));
+      void'(uvm_hdl_read("tb_top.dut.dut.local_cmd_ack_lvds", ack_lvds));
+      void'(uvm_hdl_read("tb_top.dut.dut.local_cmd_pending_lvds", pending_lvds));
+      void'(uvm_hdl_read("tb_top.dut.dut.local_cmd_consume_lvds", consume_lvds));
+      void'(uvm_hdl_read("tb_top.dut.dut.recv_state", recv_state_dbg));
+      void'(uvm_hdl_read("tb_top.dut.dut.host_state", host_state_dbg));
+
+      msg = $sformatf(
+          "%s: req_mm=%0h ack_mm_sync=%0h busy_mm=%0h req_lvds_sync=%0h req_lvds_seen=%0h ack_lvds=%0h pending_lvds=%0h consume_lvds=%0h recv_state=0x%02h host_state=0x%02h",
+          label, req_mm[0], ack_mm_sync[1:0], busy_mm[0], req_lvds_sync[1:0],
+          req_lvds_seen[0], ack_lvds[0], pending_lvds[0], consume_lvds[0],
+          recv_state_dbg[7:0], host_state_dbg[7:0]);
+      `uvm_info(get_type_name(), msg, UVM_NONE)
+    endtask
+
     task automatic wait_for_runctl(logic [8:0] expected);
       runctl_runctl_obs obs;
-      fork
-        begin
-          forever begin
-            while (env.sb.runctl_q.size() > 0) begin
-              obs = env.sb.runctl_q.pop_front();
-              if (obs.data === expected)
-                disable fork;
-            end
-            @env.sb.runctl_ev;
+      int unsigned      observed_count;
+      string            observed_values;
+      repeat (cfg.obs_timeout_cycles) begin
+        while (env.sb.runctl_q.size() > 0) begin
+          obs = env.sb.runctl_q.pop_front();
+          if (obs.data === expected)
+            return;
+          observed_count++;
+          if (observed_count <= 8) begin
+            if (observed_values.len() != 0)
+              observed_values = {observed_values, ", "};
+            observed_values = {observed_values, $sformatf("0x%03h", obs.data)};
           end
         end
-        begin
-          repeat (cfg.obs_timeout_cycles) @(posedge env.runctl_monitor_h.vif.clk);
-          `uvm_fatal(get_type_name(),
-                     $sformatf("Timed out waiting for runctl=0x%03h", expected))
-        end
-      join_any
-      disable fork;
+        @(posedge env.runctl_monitor_h.vif.clk);
+      end
+
+      `uvm_fatal(get_type_name(),
+                 $sformatf("Timed out waiting for runctl=0x%03h; observed_count=%0d observed={%s}",
+                           expected, observed_count,
+                           (observed_values.len() != 0) ? observed_values : "none"))
     endtask
 
     task automatic wait_for_upload(logic [7:0] expected_symbol, logic [23:0] expected_payload);
       runctl_upload_obs obs;
-      fork
-        begin
-          forever begin
-            while (env.sb.upload_q.size() > 0) begin
-              obs = env.sb.upload_q.pop_front();
-              if (obs.data[7:0] === expected_symbol) begin
-                if (obs.data[31:8] !== expected_payload) begin
-                  `uvm_fatal(get_type_name(),
-                             $sformatf("Upload payload mismatch exp=0x%06h got=0x%06h",
-                                       expected_payload, obs.data[31:8]))
-                end
-                disable fork;
-              end
+      repeat (cfg.obs_timeout_cycles) begin
+        while (env.sb.upload_q.size() > 0) begin
+          obs = env.sb.upload_q.pop_front();
+          if (obs.data[7:0] === expected_symbol) begin
+            if (obs.data[31:8] !== expected_payload) begin
+              `uvm_fatal(get_type_name(),
+                         $sformatf("Upload payload mismatch exp=0x%06h got=0x%06h",
+                                   expected_payload, obs.data[31:8]))
             end
-            @env.sb.upload_ev;
+            return;
           end
         end
-        begin
-          repeat (cfg.obs_timeout_cycles) @(posedge env.upload_monitor_h.vif.clk);
-          `uvm_fatal(get_type_name(),
-                     $sformatf("Timed out waiting for upload symbol=0x%02h",
-                               expected_symbol))
-        end
-      join_any
-      disable fork;
+        @(posedge env.upload_monitor_h.vif.clk);
+      end
+
+      `uvm_fatal(get_type_name(),
+                 $sformatf("Timed out waiting for upload symbol=0x%02h",
+                           expected_symbol))
     endtask
 
     task automatic wait_for_last_cmd(logic [7:0] expected_cmd);
@@ -633,6 +716,63 @@ package runctl_mgmt_env_pkg;
                  $sformatf("Timed out waiting for reset state dp=%0d ct=%0d ext=%0d",
                            exp_dp, exp_ct, exp_ext))
     endtask
+
+    task automatic wait_for_fpga_address(logic [15:0] expected_fpga_address);
+      runctl_csr_read_seq csr_read_seq;
+
+      repeat (cfg.obs_timeout_cycles) begin
+        csr_read_seq = runctl_csr_read_seq::type_id::create("fpga_address_poll");
+        csr_read_seq.address = CSR_FPGA_ADDRESS;
+        csr_read_seq.start(env.csr_agent.seqr);
+        if (csr_read_seq.readdata[31] === 1'b1 &&
+            csr_read_seq.readdata[15:0] === expected_fpga_address)
+          return;
+        @(posedge env.csr_agent.driver.vif.clk);
+      end
+
+      `uvm_fatal(get_type_name(),
+                 $sformatf("Timed out waiting for FPGA_ADDRESS=0x%04h",
+                           expected_fpga_address))
+    endtask
+
+    task automatic expect_no_new_runctl(int unsigned quiet_cycles,
+                                        string msg = "unexpected runctl activity");
+      int unsigned start_count;
+      start_count = env.sb.runctl_count;
+      repeat (quiet_cycles) @(posedge env.runctl_monitor_h.vif.clk);
+      if (env.sb.runctl_count != start_count) begin
+        `uvm_fatal(get_type_name(),
+                   $sformatf("%s: runctl_count changed from %0d to %0d",
+                             msg, start_count, env.sb.runctl_count))
+      end
+    endtask
+
+    task automatic expect_no_new_upload(int unsigned quiet_cycles,
+                                        string msg = "unexpected upload activity");
+      int unsigned start_count;
+      start_count = env.sb.upload_count;
+      repeat (quiet_cycles) @(posedge env.upload_monitor_h.vif.clk);
+      if (env.sb.upload_count != start_count) begin
+        `uvm_fatal(get_type_name(),
+                   $sformatf("%s: upload_count changed from %0d to %0d",
+                             msg, start_count, env.sb.upload_count))
+      end
+    endtask
+
+    task automatic clear_observations();
+      env.sb.runctl_q.delete();
+      env.sb.upload_q.delete();
+      env.sb.reset_q.delete();
+      env.sb.runctl_count = 0;
+      env.sb.upload_count = 0;
+      env.sb.reset_count  = 0;
+    endtask
+
+    task automatic wait_for_startup_settle();
+      // Let both reset domains come cleanly out of reset before driving traffic.
+      repeat (24) @(posedge env.runctl_monitor_h.vif.clk);
+      repeat (8)  @(posedge env.csr_agent.driver.vif.clk);
+    endtask
   endclass
 
   class runctl_mgmt_host_smoke_test extends runctl_mgmt_host_base_test;
@@ -648,7 +788,7 @@ package runctl_mgmt_env_pkg;
 
       phase.raise_objection(this);
 
-      repeat (12) @(posedge env.csr_agent.driver.vif.clk);
+      wait_for_startup_settle();
 
       csr_read_seq = runctl_csr_read_seq::type_id::create("uid_read");
       csr_read_seq.address = CSR_UID;
@@ -697,6 +837,413 @@ package runctl_mgmt_env_pkg;
         `uvm_fatal(get_type_name(),
                    $sformatf("LAST_CMD mismatch got=0x%08h",
                              csr_read_seq.readdata))
+      end
+      if (env.sb.runctl_count !== 1 || env.sb.upload_count !== 1) begin
+        `uvm_fatal(get_type_name(),
+                   $sformatf("Unexpected smoke traffic counts runctl=%0d upload=%0d",
+                             env.sb.runctl_count, env.sb.upload_count))
+      end
+
+      `uvm_info(get_type_name(), "*** TEST PASSED ***", UVM_NONE)
+      phase.drop_objection(this);
+    endtask
+  endclass
+
+  class runctl_mgmt_host_ext_reset_auto_release_test extends runctl_mgmt_host_base_test;
+    `uvm_component_utils(runctl_mgmt_host_ext_reset_auto_release_test)
+
+    function new(string name = "runctl_mgmt_host_ext_reset_auto_release_test",
+                 uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    task run_phase(uvm_phase phase);
+      runctl_csr_write_seq csr_write_seq;
+
+      phase.raise_objection(this);
+
+      wait_for_startup_settle();
+
+      csr_write_seq = runctl_csr_write_seq::type_id::create("assert_reset");
+      csr_write_seq.address   = CSR_LOCAL_CMD;
+      csr_write_seq.writedata = 32'h0000_0330;
+      csr_write_seq.start(env.csr_agent.seqr);
+      wait_for_last_cmd(CMD_RESET);
+      wait_for_reset_state(1'b1, 1'b1, 1'b1);
+      wait_for_reset_state(1'b1, 1'b1, 1'b0);
+
+      repeat (16) @(posedge env.reset_monitor_h.vif.clk);
+      if (env.reset_monitor_h.vif.dp_hard_reset  !== 1'b1 ||
+          env.reset_monitor_h.vif.ct_hard_reset  !== 1'b1 ||
+          env.reset_monitor_h.vif.ext_hard_reset !== 1'b0) begin
+        `uvm_fatal(get_type_name(),
+                   "Local hard resets did not remain held after ext_hard_reset auto-release")
+      end
+
+      csr_write_seq = runctl_csr_write_seq::type_id::create("release_reset");
+      csr_write_seq.address   = CSR_LOCAL_CMD;
+      csr_write_seq.writedata = 32'h0000_0331;
+      csr_write_seq.start(env.csr_agent.seqr);
+      wait_for_last_cmd(CMD_STOP_RESET);
+      wait_for_reset_state(1'b0, 1'b0, 1'b0);
+
+      `uvm_info(get_type_name(), "*** TEST PASSED ***", UVM_NONE)
+      phase.drop_objection(this);
+    endtask
+  endclass
+
+  class runctl_mgmt_host_synclink_cmd_matrix_test extends runctl_mgmt_host_base_test;
+    `uvm_component_utils(runctl_mgmt_host_synclink_cmd_matrix_test)
+
+    function new(string name = "runctl_mgmt_host_synclink_cmd_matrix_test",
+                 uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    task automatic send_synclink_cmd(string seq_name,
+                                     byte unsigned cmd_byte,
+                                     byte unsigned payload_bytes[$]);
+      runctl_synclink_cmd_seq synclink_seq;
+      synclink_seq = runctl_synclink_cmd_seq::type_id::create(seq_name);
+      synclink_seq.cmd_byte = cmd_byte;
+      synclink_seq.payload_bytes = payload_bytes;
+      synclink_seq.tail_idle_cycles = 2;
+      synclink_seq.start(env.synclink_agent.seqr);
+    endtask
+
+    task automatic send_synclink_byte(string seq_name, byte unsigned cmd_byte);
+      byte unsigned payload_bytes[$];
+      send_synclink_cmd(seq_name, cmd_byte, payload_bytes);
+    endtask
+
+    task run_phase(uvm_phase phase);
+      runctl_csr_read_seq csr_read_seq;
+      byte unsigned       payload_bytes[$];
+
+      phase.raise_objection(this);
+
+      wait_for_startup_settle();
+      clear_observations();
+
+      payload_bytes = {8'h78, 8'h56, 8'h34, 8'h12};
+      send_synclink_cmd("synclink_run_prepare", CMD_RUN_PREPARE, payload_bytes);
+      wait_for_last_cmd(CMD_RUN_PREPARE);
+      wait_for_run_number(32'h1234_5678);
+      wait_for_runctl(RUNCTL_RUN_PREPARE);
+      wait_for_upload(RUN_START_ACK_SYMBOL_CONST, 24'h345678);
+
+      send_synclink_byte("synclink_run_sync", CMD_RUN_SYNC);
+      wait_for_last_cmd(CMD_RUN_SYNC);
+      wait_for_runctl(RUNCTL_RUN_SYNC);
+      expect_no_new_upload(cfg.obs_timeout_cycles, "RUN_SYNC must not upload");
+
+      send_synclink_byte("synclink_start_run", CMD_START_RUN);
+      wait_for_last_cmd(CMD_START_RUN);
+      wait_for_runctl(RUNCTL_START_RUN);
+      expect_no_new_upload(cfg.obs_timeout_cycles, "START_RUN must not upload");
+
+      send_synclink_byte("synclink_end_run", CMD_END_RUN);
+      wait_for_last_cmd(CMD_END_RUN);
+      wait_for_runctl(RUNCTL_END_RUN);
+      wait_for_upload(RUN_END_ACK_SYMBOL_CONST, 24'h000000);
+
+      send_synclink_byte("synclink_abort_run", CMD_ABORT_RUN);
+      wait_for_last_cmd(CMD_ABORT_RUN);
+      wait_for_runctl(RUNCTL_IDLE);
+      expect_no_new_upload(cfg.obs_timeout_cycles, "ABORT_RUN must not upload");
+
+      send_synclink_byte("synclink_start_link_test", CMD_START_LINK_TEST);
+      wait_for_last_cmd(CMD_START_LINK_TEST);
+      wait_for_runctl(RUNCTL_LINK_TEST);
+      expect_no_new_upload(cfg.obs_timeout_cycles, "START_LINK_TEST must not upload");
+
+      send_synclink_byte("synclink_stop_link_test", CMD_STOP_LINK_TEST);
+      wait_for_last_cmd(CMD_STOP_LINK_TEST);
+      wait_for_runctl(RUNCTL_IDLE);
+      expect_no_new_upload(cfg.obs_timeout_cycles, "STOP_LINK_TEST must not upload");
+
+      send_synclink_byte("synclink_start_sync_test", CMD_START_SYNC_TEST);
+      wait_for_last_cmd(CMD_START_SYNC_TEST);
+      wait_for_runctl(RUNCTL_SYNC_TEST);
+      expect_no_new_upload(cfg.obs_timeout_cycles, "START_SYNC_TEST must not upload");
+
+      send_synclink_byte("synclink_test_sync", CMD_TEST_SYNC);
+      wait_for_last_cmd(CMD_TEST_SYNC);
+      wait_for_runctl(RUNCTL_SYNC_TEST);
+      expect_no_new_upload(cfg.obs_timeout_cycles, "TEST_SYNC must not upload");
+
+      send_synclink_byte("synclink_stop_sync_test", CMD_STOP_SYNC_TEST);
+      wait_for_last_cmd(CMD_STOP_SYNC_TEST);
+      wait_for_runctl(RUNCTL_IDLE);
+      expect_no_new_upload(cfg.obs_timeout_cycles, "STOP_SYNC_TEST must not upload");
+
+      send_synclink_byte("synclink_reset", CMD_RESET);
+      wait_for_last_cmd(CMD_RESET);
+      wait_for_reset_state(1'b1, 1'b1, 1'b1);
+      expect_no_new_runctl(cfg.obs_timeout_cycles, "RESET must not fan out");
+      expect_no_new_upload(cfg.obs_timeout_cycles, "RESET must not upload");
+
+      send_synclink_byte("synclink_stop_reset", CMD_STOP_RESET);
+      wait_for_last_cmd(CMD_STOP_RESET);
+      wait_for_reset_state(1'b0, 1'b0, 1'b0);
+      expect_no_new_runctl(cfg.obs_timeout_cycles, "STOP_RESET must not fan out");
+      expect_no_new_upload(cfg.obs_timeout_cycles, "STOP_RESET must not upload");
+
+      send_synclink_byte("synclink_enable", CMD_ENABLE);
+      wait_for_last_cmd(CMD_ENABLE);
+      wait_for_runctl(RUNCTL_IDLE);
+      expect_no_new_upload(cfg.obs_timeout_cycles, "ENABLE must not upload");
+
+      send_synclink_byte("synclink_disable", CMD_DISABLE);
+      wait_for_last_cmd(CMD_DISABLE);
+      wait_for_runctl(RUNCTL_OUT_OF_DAQ);
+      expect_no_new_upload(cfg.obs_timeout_cycles, "DISABLE must not upload");
+
+      payload_bytes = {8'hBE, 8'hEF};
+      send_synclink_cmd("synclink_address", CMD_ADDRESS, payload_bytes);
+      wait_for_last_cmd(CMD_ADDRESS);
+      wait_for_fpga_address(16'hBEEF);
+      expect_no_new_runctl(cfg.obs_timeout_cycles, "ADDRESS must not fan out");
+      expect_no_new_upload(cfg.obs_timeout_cycles, "ADDRESS must not upload");
+
+      csr_read_seq = runctl_csr_read_seq::type_id::create("final_fpga_addr_read");
+      csr_read_seq.address = CSR_FPGA_ADDRESS;
+      csr_read_seq.start(env.csr_agent.seqr);
+      if (csr_read_seq.readdata !== 32'h8000_BEEF) begin
+        `uvm_fatal(get_type_name(),
+                   $sformatf("FPGA_ADDRESS mismatch got=0x%08h",
+                             csr_read_seq.readdata))
+      end
+      if (env.sb.runctl_count !== 12 || env.sb.upload_count !== 2) begin
+        `uvm_fatal(get_type_name(),
+                   $sformatf("Unexpected synclink matrix counts runctl=%0d upload=%0d",
+                             env.sb.runctl_count, env.sb.upload_count))
+      end
+
+      `uvm_info(get_type_name(), "*** TEST PASSED ***", UVM_NONE)
+      phase.drop_objection(this);
+    endtask
+  endclass
+
+  class runctl_mgmt_host_swb_run_number_endian_test extends runctl_mgmt_host_base_test;
+    `uvm_component_utils(runctl_mgmt_host_swb_run_number_endian_test)
+
+    function new(string name = "runctl_mgmt_host_swb_run_number_endian_test",
+                 uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    task run_phase(uvm_phase phase);
+      runctl_synclink_cmd_seq synclink_seq;
+      byte unsigned           payload_bytes[$];
+
+      phase.raise_objection(this);
+
+      wait_for_startup_settle();
+      clear_observations();
+
+      payload_bytes = {8'h2A, 8'h00, 8'h00, 8'h00};
+      synclink_seq = runctl_synclink_cmd_seq::type_id::create("swb_run_prepare_42");
+      synclink_seq.cmd_byte = CMD_RUN_PREPARE;
+      synclink_seq.payload_bytes = payload_bytes;
+      synclink_seq.tail_idle_cycles = 2;
+      synclink_seq.start(env.synclink_agent.seqr);
+
+      wait_for_last_cmd(CMD_RUN_PREPARE);
+      wait_for_run_number(32'h0000_002A);
+      wait_for_runctl(RUNCTL_RUN_PREPARE);
+      wait_for_upload(RUN_START_ACK_SYMBOL_CONST, 24'h00002A);
+
+      if (env.sb.runctl_count !== 1 || env.sb.upload_count !== 1) begin
+        `uvm_fatal(get_type_name(),
+                   $sformatf("Unexpected SWB endian counts runctl=%0d upload=%0d",
+                             env.sb.runctl_count, env.sb.upload_count))
+      end
+
+      `uvm_info(get_type_name(), "*** TEST PASSED ***", UVM_NONE)
+      phase.drop_objection(this);
+    endtask
+  endclass
+
+  class runctl_mgmt_host_local_cmd_backpressure_test extends runctl_mgmt_host_base_test;
+    `uvm_component_utils(runctl_mgmt_host_local_cmd_backpressure_test)
+
+    function new(string name = "runctl_mgmt_host_local_cmd_backpressure_test",
+                 uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    task run_phase(uvm_phase phase);
+      runctl_csr_write_seq csr_write_seq;
+      logic [31:0]         last_cmd_readdata;
+      logic [31:0]         status_readdata;
+      bit                  busy_clear_seen;
+
+      phase.raise_objection(this);
+
+      wait_for_startup_settle();
+      clear_observations();
+
+      runctl_ctl_vif.ready = 1'b0;
+      @(posedge runctl_ctl_vif.clk);
+
+      csr_write_seq = runctl_csr_write_seq::type_id::create("local_reset_bypass_bp");
+      csr_write_seq.address   = CSR_LOCAL_CMD;
+      csr_write_seq.writedata = 32'h0000_0330;
+      csr_write_seq.start(env.csr_agent.seqr);
+
+      wait_for_last_cmd(CMD_RESET);
+      wait_for_reset_state(1'b1, 1'b1, 1'b1);
+      expect_no_new_runctl(cfg.obs_timeout_cycles,
+                           "RESET fanned out while runctl ready was held low");
+      wait_for_csr_mask(CSR_STATUS, 32'h40FF_FF33, 32'h0000_0033, 64,
+                        "RESET did not retire while runctl ready was low");
+
+      csr_write_seq = runctl_csr_write_seq::type_id::create("local_stop_reset_bypass_bp");
+      csr_write_seq.address   = CSR_LOCAL_CMD;
+      csr_write_seq.writedata = 32'h0000_0331;
+      csr_write_seq.start(env.csr_agent.seqr);
+
+      wait_for_last_cmd(CMD_STOP_RESET);
+      wait_for_reset_state(1'b0, 1'b0, 1'b0);
+      expect_no_new_runctl(cfg.obs_timeout_cycles,
+                           "STOP_RESET fanned out while runctl ready was held low");
+      wait_for_csr_mask(CSR_STATUS, 32'h40FF_FF03, 32'h0000_0003, 64,
+                        "STOP_RESET did not retire while runctl ready was low");
+
+      csr_write_seq = runctl_csr_write_seq::type_id::create("local_start_run_bp");
+      csr_write_seq.address   = CSR_LOCAL_CMD;
+      csr_write_seq.writedata = 32'h0000_0012;
+      csr_write_seq.start(env.csr_agent.seqr);
+
+      busy_clear_seen = 1'b0;
+      repeat (64) begin
+        csr_read_once(CSR_STATUS, status_readdata);
+        if ((status_readdata & 32'h00FF_FF00) === 32'h0001_0200) begin
+          busy_clear_seen = 1'b1;
+          break;
+        end
+        @(posedge env.csr_agent.driver.vif.clk);
+      end
+      if (!busy_clear_seen) begin
+        dump_local_cmd_debug("fanout_stall_timeout");
+        `uvm_fatal(get_type_name(),
+                   $sformatf("START_RUN did not stall in POSTING/LOGGING while runctl ready was low: status=0x%08h",
+                             status_readdata))
+      end
+      csr_read_once(CSR_LAST_CMD, last_cmd_readdata);
+      if (last_cmd_readdata[7:0] !== CMD_STOP_RESET) begin
+        `uvm_fatal(get_type_name(),
+                   $sformatf("START_RUN retired early while runctl ready low: 0x%08h",
+                             last_cmd_readdata))
+      end
+
+      expect_no_new_runctl(cfg.obs_timeout_cycles,
+                           "runctl handshake occurred while runctl ready was held low");
+
+      runctl_ctl_vif.ready = 1'b1;
+      wait_for_last_cmd(CMD_START_RUN);
+      wait_for_runctl(RUNCTL_START_RUN);
+      wait_for_csr_mask(CSR_STATUS, 32'h40FF_FF03, 32'h0000_0003, 64,
+                        "status did not return to idle after releasing runctl ready");
+
+      `uvm_info(get_type_name(), "*** TEST PASSED ***", UVM_NONE)
+      phase.drop_objection(this);
+    endtask
+  endclass
+
+  class runctl_mgmt_host_synclink_idle_guard_test extends runctl_mgmt_host_base_test;
+    `uvm_component_utils(runctl_mgmt_host_synclink_idle_guard_test)
+
+    function new(string name = "runctl_mgmt_host_synclink_idle_guard_test",
+                 uvm_component parent = null);
+      super.new(name, parent);
+    endfunction
+
+    task automatic send_synclink_raw(string seq_name,
+                                     logic [8:0] raw_symbols[$],
+                                     bit [2:0] raw_errors[$]);
+      runctl_synclink_cmd_seq synclink_seq;
+      synclink_seq = runctl_synclink_cmd_seq::type_id::create(seq_name);
+      synclink_seq.use_raw_symbols = 1'b1;
+      synclink_seq.raw_symbols     = raw_symbols;
+      synclink_seq.error_bytes     = raw_errors;
+      synclink_seq.tail_idle_cycles = 2;
+      synclink_seq.start(env.synclink_agent.seqr);
+    endtask
+
+    task run_phase(uvm_phase phase);
+      logic [31:0] status_readdata;
+      logic [31:0] last_cmd_readdata;
+      logic [8:0]  raw_symbols[$];
+      bit [2:0]    raw_errors[$];
+
+      phase.raise_objection(this);
+
+      wait_for_startup_settle();
+      clear_observations();
+
+      runctl_ctl_vif.ready = 1'b0;
+      @(posedge runctl_ctl_vif.clk);
+
+      raw_symbols = {};
+      raw_errors  = {};
+      raw_symbols.push_back({1'b0, 8'h00});
+      raw_errors.push_back(3'b100);
+      raw_symbols.push_back({1'b0, CMD_RESET});
+      raw_errors.push_back(3'b000);
+      send_synclink_raw("startup_false_reset", raw_symbols, raw_errors);
+
+      wait_for_csr_mask(CSR_STATUS, 32'h00FF_FF03, 32'h0000_0003, 16,
+                        "pre-comma data byte escaped RECV_IDLE");
+      csr_read_once(CSR_LAST_CMD, last_cmd_readdata);
+      if (last_cmd_readdata[7:0] !== 8'h00) begin
+        `uvm_fatal(get_type_name(),
+                   $sformatf("LAST_CMD changed before idle/comma arm: 0x%08h",
+                             last_cmd_readdata))
+      end
+      expect_no_new_runctl(cfg.obs_timeout_cycles,
+                           "pre-comma data byte must not emit runctl");
+
+      raw_symbols = {};
+      raw_errors  = {};
+      raw_symbols.push_back(SYNCLINK_IDLE_COMMA);
+      raw_errors.push_back(3'b000);
+      raw_symbols.push_back({1'b0, CMD_RESET});
+      raw_errors.push_back(3'b000);
+      send_synclink_raw("comma_then_reset", raw_symbols, raw_errors);
+
+      wait_for_last_cmd(CMD_RESET);
+      wait_for_reset_state(1'b1, 1'b1, 1'b1);
+      expect_no_new_runctl(cfg.obs_timeout_cycles,
+                           "comma-qualified RESET must not emit runctl");
+      expect_no_new_upload(cfg.obs_timeout_cycles, "RESET must not upload");
+      wait_for_csr_mask(CSR_STATUS, 32'h00FF_FF33, 32'h0000_0033, 64,
+                        "comma-qualified RESET did not retire while ready low");
+
+      raw_symbols = {};
+      raw_errors  = {};
+      raw_symbols.push_back(SYNCLINK_IDLE_COMMA);
+      raw_errors.push_back(3'b000);
+      raw_symbols.push_back({1'b0, CMD_STOP_RESET});
+      raw_errors.push_back(3'b000);
+      send_synclink_raw("comma_then_stop_reset", raw_symbols, raw_errors);
+
+      wait_for_last_cmd(CMD_STOP_RESET);
+      wait_for_reset_state(1'b0, 1'b0, 1'b0);
+      expect_no_new_runctl(cfg.obs_timeout_cycles,
+                           "comma-qualified STOP_RESET must not emit runctl");
+      expect_no_new_upload(cfg.obs_timeout_cycles, "STOP_RESET must not upload");
+      wait_for_csr_mask(CSR_STATUS, 32'h00FF_FF03, 32'h0000_0003, 64,
+                        "comma-qualified STOP_RESET did not retire while ready low");
+
+      runctl_ctl_vif.ready = 1'b1;
+
+      csr_read_once(CSR_STATUS, status_readdata);
+      if (env.sb.runctl_count != 0 || env.sb.upload_count != 0) begin
+        `uvm_fatal(get_type_name(),
+                   $sformatf("Unexpected startup-guard traffic counts runctl=%0d upload=%0d status=0x%08h",
+                             env.sb.runctl_count, env.sb.upload_count, status_readdata))
       end
 
       `uvm_info(get_type_name(), "*** TEST PASSED ***", UVM_NONE)

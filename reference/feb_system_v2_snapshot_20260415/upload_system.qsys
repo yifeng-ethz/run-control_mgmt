@@ -131,6 +131,11 @@
    type="reset"
    dir="start" />
  <interface
+   name="ext_hard_reset"
+   internal="runctl_mgmt_host_0.ext_hard_reset"
+   type="reset"
+   dir="start" />
+ <interface
    name="lvds_outclock"
    internal="data_path_clock_125.clk_in"
    type="clock"

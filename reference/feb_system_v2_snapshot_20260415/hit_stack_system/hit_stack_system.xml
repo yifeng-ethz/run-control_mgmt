@@ -1,0 +1,1232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<deploy
+ date="2026.04.24.14:34:41"
+ outputDirectory="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/">
+ <perimeter>
+  <parameter
+     name="AUTO_GENERATION_ID"
+     type="Integer"
+     defaultValue="0"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_UNIQUE_ID"
+     type="String"
+     defaultValue=""
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_DEVICE_FAMILY"
+     type="String"
+     defaultValue="Arria V"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_DEVICE"
+     type="String"
+     defaultValue="5AGXBA7D4F31C5"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_DEVICE_SPEEDGRADE"
+     type="String"
+     defaultValue="5_H4"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_DATAPATH_CLOCK_CLOCK_RATE"
+     type="Long"
+     defaultValue="-1"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_DATAPATH_CLOCK_CLOCK_DOMAIN"
+     type="Integer"
+     defaultValue="-1"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_DATAPATH_CLOCK_RESET_DOMAIN"
+     type="Integer"
+     defaultValue="-1"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_XCVR_CLOCK_CLOCK_RATE"
+     type="Long"
+     defaultValue="-1"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_XCVR_CLOCK_CLOCK_DOMAIN"
+     type="Integer"
+     defaultValue="-1"
+     onHdl="0"
+     affectsHdl="1" />
+  <parameter
+     name="AUTO_XCVR_CLOCK_RESET_DOMAIN"
+     type="Integer"
+     defaultValue="-1"
+     onHdl="0"
+     affectsHdl="1" />
+  <interface name="datapath_clock" kind="clock" start="0">
+   <property name="clockRate" value="125000000" />
+   <property name="externallyDriven" value="false" />
+   <property name="ptfSchematicName" value="" />
+   <port name="datapath_clock_clk" direction="input" role="clk" width="1" />
+  </interface>
+  <interface name="datapath_reset" kind="reset" start="0">
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="synchronousEdges" value="BOTH" />
+   <port
+       name="datapath_reset_reset_n"
+       direction="input"
+       role="reset_n"
+       width="1" />
+  </interface>
+  <interface name="feb_frame_assembly_csr" kind="avalon" start="0">
+   <property name="addressAlignment" value="DYNAMIC" />
+   <property name="addressGroup" value="0" />
+   <property name="addressSpan" value="64" />
+   <property name="addressUnits" value="WORDS" />
+   <property name="alwaysBurstMaxBurst" value="false" />
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="bitsPerSymbol" value="8" />
+   <property name="bridgedAddressOffset" value="0" />
+   <property name="bridgesToMaster" value="" />
+   <property name="burstOnBurstBoundariesOnly" value="false" />
+   <property name="burstcountUnits" value="WORDS" />
+   <property name="constantBurstBehavior" value="false" />
+   <property name="explicitAddressSpan" value="0" />
+   <property name="holdTime" value="0" />
+   <property name="interleaveBursts" value="false" />
+   <property name="isBigEndian" value="false" />
+   <property name="isFlash" value="false" />
+   <property name="isMemoryDevice" value="false" />
+   <property name="isNonVolatileStorage" value="false" />
+   <property name="linewrapBursts" value="false" />
+   <property name="maximumPendingReadTransactions" value="0" />
+   <property name="maximumPendingWriteTransactions" value="0" />
+   <property name="minimumUninterruptedRunLength" value="1" />
+   <property name="printableDevice" value="false" />
+   <property name="readLatency" value="1" />
+   <property name="readWaitStates" value="1" />
+   <property name="readWaitTime" value="1" />
+   <property name="registerIncomingSignals" value="false" />
+   <property name="registerOutgoingSignals" value="false" />
+   <property name="setupTime" value="0" />
+   <property name="timingUnits" value="Cycles" />
+   <property name="transparentBridge" value="false" />
+   <property name="wellBehavedWaitrequest" value="false" />
+   <property name="writeLatency" value="0" />
+   <property name="writeWaitStates" value="0" />
+   <property name="writeWaitTime" value="0" />
+   <port
+       name="feb_frame_assembly_csr_readdata"
+       direction="output"
+       role="readdata"
+       width="32" />
+   <port
+       name="feb_frame_assembly_csr_read"
+       direction="input"
+       role="read"
+       width="1" />
+   <port
+       name="feb_frame_assembly_csr_address"
+       direction="input"
+       role="address"
+       width="4" />
+   <port
+       name="feb_frame_assembly_csr_waitrequest"
+       direction="output"
+       role="waitrequest"
+       width="1" />
+   <port
+       name="feb_frame_assembly_csr_write"
+       direction="input"
+       role="write"
+       width="1" />
+   <port
+       name="feb_frame_assembly_csr_writedata"
+       direction="input"
+       role="writedata"
+       width="32" />
+  </interface>
+  <interface name="frame_debug_burst" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="xcvr_clock" />
+   <property name="associatedReset" value="xcvr_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="16" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="frame_debug_burst_valid"
+       direction="output"
+       role="valid"
+       width="1" />
+   <port
+       name="frame_debug_burst_data"
+       direction="output"
+       role="data"
+       width="16" />
+  </interface>
+  <interface name="frame_debug_delay8loss" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="16" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="frame_debug_delay8loss_valid"
+       direction="output"
+       role="valid"
+       width="1" />
+   <port
+       name="frame_debug_delay8loss_data"
+       direction="output"
+       role="data"
+       width="16" />
+  </interface>
+  <interface name="frame_debug_filllevel" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="16" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="frame_debug_filllevel_valid"
+       direction="output"
+       role="valid"
+       width="1" />
+   <port
+       name="frame_debug_filllevel_data"
+       direction="output"
+       role="data"
+       width="16" />
+  </interface>
+  <interface name="frame_debug_loss8fill" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="16" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="frame_debug_loss8fill_valid"
+       direction="output"
+       role="valid"
+       width="1" />
+   <port
+       name="frame_debug_loss8fill_data"
+       direction="output"
+       role="data"
+       width="16" />
+  </interface>
+  <interface name="frame_debug_ts" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="xcvr_clock" />
+   <property name="associatedReset" value="xcvr_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="16" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port name="frame_debug_ts_data" direction="output" role="data" width="16" />
+   <port name="frame_debug_ts_valid" direction="output" role="valid" width="1" />
+  </interface>
+  <interface name="frame_ts_delta" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="xcvr_clock" />
+   <property name="associatedReset" value="xcvr_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="16" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port name="frame_ts_delta_valid" direction="output" role="valid" width="1" />
+   <port name="frame_ts_delta_data" direction="output" role="data" width="16" />
+  </interface>
+  <interface name="hit_type3" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="xcvr_clock" />
+   <property name="associatedReset" value="xcvr_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="36" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port name="hit_type3_data" direction="output" role="data" width="36" />
+   <port name="hit_type3_valid" direction="output" role="valid" width="1" />
+   <port name="hit_type3_ready" direction="input" role="ready" width="1" />
+   <port
+       name="hit_type3_startofpacket"
+       direction="output"
+       role="startofpacket"
+       width="1" />
+   <port
+       name="hit_type3_endofpacket"
+       direction="output"
+       role="endofpacket"
+       width="1" />
+  </interface>
+  <interface name="hit_type_1" kind="avalon_streaming" start="0">
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="39" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="tserr" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="15" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port name="hit_type_1_ready" direction="output" role="ready" width="1" />
+   <port name="hit_type_1_valid" direction="input" role="valid" width="1" />
+   <port
+       name="hit_type_1_startofpacket"
+       direction="input"
+       role="startofpacket"
+       width="1" />
+   <port
+       name="hit_type_1_endofpacket"
+       direction="input"
+       role="endofpacket"
+       width="1" />
+   <port name="hit_type_1_empty" direction="input" role="empty" width="1" />
+   <port name="hit_type_1_channel" direction="input" role="channel" width="4" />
+   <port name="hit_type_1_error" direction="input" role="error" width="1" />
+   <port name="hit_type_1_data" direction="input" role="data" width="39" />
+  </interface>
+  <interface name="ring_buffer_cam_0_csr" kind="avalon" start="0">
+   <property name="addressAlignment" value="DYNAMIC" />
+   <property name="addressGroup" value="0" />
+   <property name="addressSpan" value="128" />
+   <property name="addressUnits" value="WORDS" />
+   <property name="alwaysBurstMaxBurst" value="false" />
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="bitsPerSymbol" value="8" />
+   <property name="bridgedAddressOffset" value="0" />
+   <property name="bridgesToMaster" value="" />
+   <property name="burstOnBurstBoundariesOnly" value="false" />
+   <property name="burstcountUnits" value="WORDS" />
+   <property name="constantBurstBehavior" value="false" />
+   <property name="explicitAddressSpan" value="0" />
+   <property name="holdTime" value="0" />
+   <property name="interleaveBursts" value="false" />
+   <property name="isBigEndian" value="false" />
+   <property name="isFlash" value="false" />
+   <property name="isMemoryDevice" value="false" />
+   <property name="isNonVolatileStorage" value="false" />
+   <property name="linewrapBursts" value="false" />
+   <property name="maximumPendingReadTransactions" value="0" />
+   <property name="maximumPendingWriteTransactions" value="0" />
+   <property name="minimumUninterruptedRunLength" value="1" />
+   <property name="printableDevice" value="false" />
+   <property name="readLatency" value="1" />
+   <property name="readWaitStates" value="1" />
+   <property name="readWaitTime" value="1" />
+   <property name="registerIncomingSignals" value="false" />
+   <property name="registerOutgoingSignals" value="false" />
+   <property name="setupTime" value="0" />
+   <property name="timingUnits" value="Cycles" />
+   <property name="transparentBridge" value="false" />
+   <property name="wellBehavedWaitrequest" value="false" />
+   <property name="writeLatency" value="0" />
+   <property name="writeWaitStates" value="0" />
+   <property name="writeWaitTime" value="0" />
+   <port
+       name="ring_buffer_cam_0_csr_readdata"
+       direction="output"
+       role="readdata"
+       width="32" />
+   <port
+       name="ring_buffer_cam_0_csr_read"
+       direction="input"
+       role="read"
+       width="1" />
+   <port
+       name="ring_buffer_cam_0_csr_address"
+       direction="input"
+       role="address"
+       width="5" />
+   <port
+       name="ring_buffer_cam_0_csr_waitrequest"
+       direction="output"
+       role="waitrequest"
+       width="1" />
+   <port
+       name="ring_buffer_cam_0_csr_write"
+       direction="input"
+       role="write"
+       width="1" />
+   <port
+       name="ring_buffer_cam_0_csr_writedata"
+       direction="input"
+       role="writedata"
+       width="32" />
+  </interface>
+  <interface name="ring_buffer_cam_0_filllevel" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="16" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="ring_buffer_cam_0_filllevel_data"
+       direction="output"
+       role="data"
+       width="16" />
+   <port
+       name="ring_buffer_cam_0_filllevel_valid"
+       direction="output"
+       role="valid"
+       width="1" />
+  </interface>
+  <interface name="ring_buffer_cam_1_csr" kind="avalon" start="0">
+   <property name="addressAlignment" value="DYNAMIC" />
+   <property name="addressGroup" value="0" />
+   <property name="addressSpan" value="128" />
+   <property name="addressUnits" value="WORDS" />
+   <property name="alwaysBurstMaxBurst" value="false" />
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="bitsPerSymbol" value="8" />
+   <property name="bridgedAddressOffset" value="0" />
+   <property name="bridgesToMaster" value="" />
+   <property name="burstOnBurstBoundariesOnly" value="false" />
+   <property name="burstcountUnits" value="WORDS" />
+   <property name="constantBurstBehavior" value="false" />
+   <property name="explicitAddressSpan" value="0" />
+   <property name="holdTime" value="0" />
+   <property name="interleaveBursts" value="false" />
+   <property name="isBigEndian" value="false" />
+   <property name="isFlash" value="false" />
+   <property name="isMemoryDevice" value="false" />
+   <property name="isNonVolatileStorage" value="false" />
+   <property name="linewrapBursts" value="false" />
+   <property name="maximumPendingReadTransactions" value="0" />
+   <property name="maximumPendingWriteTransactions" value="0" />
+   <property name="minimumUninterruptedRunLength" value="1" />
+   <property name="printableDevice" value="false" />
+   <property name="readLatency" value="1" />
+   <property name="readWaitStates" value="1" />
+   <property name="readWaitTime" value="1" />
+   <property name="registerIncomingSignals" value="false" />
+   <property name="registerOutgoingSignals" value="false" />
+   <property name="setupTime" value="0" />
+   <property name="timingUnits" value="Cycles" />
+   <property name="transparentBridge" value="false" />
+   <property name="wellBehavedWaitrequest" value="false" />
+   <property name="writeLatency" value="0" />
+   <property name="writeWaitStates" value="0" />
+   <property name="writeWaitTime" value="0" />
+   <port
+       name="ring_buffer_cam_1_csr_readdata"
+       direction="output"
+       role="readdata"
+       width="32" />
+   <port
+       name="ring_buffer_cam_1_csr_read"
+       direction="input"
+       role="read"
+       width="1" />
+   <port
+       name="ring_buffer_cam_1_csr_address"
+       direction="input"
+       role="address"
+       width="5" />
+   <port
+       name="ring_buffer_cam_1_csr_waitrequest"
+       direction="output"
+       role="waitrequest"
+       width="1" />
+   <port
+       name="ring_buffer_cam_1_csr_write"
+       direction="input"
+       role="write"
+       width="1" />
+   <port
+       name="ring_buffer_cam_1_csr_writedata"
+       direction="input"
+       role="writedata"
+       width="32" />
+  </interface>
+  <interface name="ring_buffer_cam_1_filllevel" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="16" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="ring_buffer_cam_1_filllevel_data"
+       direction="output"
+       role="data"
+       width="16" />
+   <port
+       name="ring_buffer_cam_1_filllevel_valid"
+       direction="output"
+       role="valid"
+       width="1" />
+  </interface>
+  <interface name="ring_buffer_cam_2_csr" kind="avalon" start="0">
+   <property name="addressAlignment" value="DYNAMIC" />
+   <property name="addressGroup" value="0" />
+   <property name="addressSpan" value="128" />
+   <property name="addressUnits" value="WORDS" />
+   <property name="alwaysBurstMaxBurst" value="false" />
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="bitsPerSymbol" value="8" />
+   <property name="bridgedAddressOffset" value="0" />
+   <property name="bridgesToMaster" value="" />
+   <property name="burstOnBurstBoundariesOnly" value="false" />
+   <property name="burstcountUnits" value="WORDS" />
+   <property name="constantBurstBehavior" value="false" />
+   <property name="explicitAddressSpan" value="0" />
+   <property name="holdTime" value="0" />
+   <property name="interleaveBursts" value="false" />
+   <property name="isBigEndian" value="false" />
+   <property name="isFlash" value="false" />
+   <property name="isMemoryDevice" value="false" />
+   <property name="isNonVolatileStorage" value="false" />
+   <property name="linewrapBursts" value="false" />
+   <property name="maximumPendingReadTransactions" value="0" />
+   <property name="maximumPendingWriteTransactions" value="0" />
+   <property name="minimumUninterruptedRunLength" value="1" />
+   <property name="printableDevice" value="false" />
+   <property name="readLatency" value="1" />
+   <property name="readWaitStates" value="1" />
+   <property name="readWaitTime" value="1" />
+   <property name="registerIncomingSignals" value="false" />
+   <property name="registerOutgoingSignals" value="false" />
+   <property name="setupTime" value="0" />
+   <property name="timingUnits" value="Cycles" />
+   <property name="transparentBridge" value="false" />
+   <property name="wellBehavedWaitrequest" value="false" />
+   <property name="writeLatency" value="0" />
+   <property name="writeWaitStates" value="0" />
+   <property name="writeWaitTime" value="0" />
+   <port
+       name="ring_buffer_cam_2_csr_readdata"
+       direction="output"
+       role="readdata"
+       width="32" />
+   <port
+       name="ring_buffer_cam_2_csr_read"
+       direction="input"
+       role="read"
+       width="1" />
+   <port
+       name="ring_buffer_cam_2_csr_address"
+       direction="input"
+       role="address"
+       width="5" />
+   <port
+       name="ring_buffer_cam_2_csr_waitrequest"
+       direction="output"
+       role="waitrequest"
+       width="1" />
+   <port
+       name="ring_buffer_cam_2_csr_write"
+       direction="input"
+       role="write"
+       width="1" />
+   <port
+       name="ring_buffer_cam_2_csr_writedata"
+       direction="input"
+       role="writedata"
+       width="32" />
+  </interface>
+  <interface name="ring_buffer_cam_2_filllevel" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="16" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="ring_buffer_cam_2_filllevel_data"
+       direction="output"
+       role="data"
+       width="16" />
+   <port
+       name="ring_buffer_cam_2_filllevel_valid"
+       direction="output"
+       role="valid"
+       width="1" />
+  </interface>
+  <interface name="ring_buffer_cam_3_csr" kind="avalon" start="0">
+   <property name="addressAlignment" value="DYNAMIC" />
+   <property name="addressGroup" value="0" />
+   <property name="addressSpan" value="128" />
+   <property name="addressUnits" value="WORDS" />
+   <property name="alwaysBurstMaxBurst" value="false" />
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="bitsPerSymbol" value="8" />
+   <property name="bridgedAddressOffset" value="0" />
+   <property name="bridgesToMaster" value="" />
+   <property name="burstOnBurstBoundariesOnly" value="false" />
+   <property name="burstcountUnits" value="WORDS" />
+   <property name="constantBurstBehavior" value="false" />
+   <property name="explicitAddressSpan" value="0" />
+   <property name="holdTime" value="0" />
+   <property name="interleaveBursts" value="false" />
+   <property name="isBigEndian" value="false" />
+   <property name="isFlash" value="false" />
+   <property name="isMemoryDevice" value="false" />
+   <property name="isNonVolatileStorage" value="false" />
+   <property name="linewrapBursts" value="false" />
+   <property name="maximumPendingReadTransactions" value="0" />
+   <property name="maximumPendingWriteTransactions" value="0" />
+   <property name="minimumUninterruptedRunLength" value="1" />
+   <property name="printableDevice" value="false" />
+   <property name="readLatency" value="1" />
+   <property name="readWaitStates" value="1" />
+   <property name="readWaitTime" value="1" />
+   <property name="registerIncomingSignals" value="false" />
+   <property name="registerOutgoingSignals" value="false" />
+   <property name="setupTime" value="0" />
+   <property name="timingUnits" value="Cycles" />
+   <property name="transparentBridge" value="false" />
+   <property name="wellBehavedWaitrequest" value="false" />
+   <property name="writeLatency" value="0" />
+   <property name="writeWaitStates" value="0" />
+   <property name="writeWaitTime" value="0" />
+   <port
+       name="ring_buffer_cam_3_csr_readdata"
+       direction="output"
+       role="readdata"
+       width="32" />
+   <port
+       name="ring_buffer_cam_3_csr_read"
+       direction="input"
+       role="read"
+       width="1" />
+   <port
+       name="ring_buffer_cam_3_csr_address"
+       direction="input"
+       role="address"
+       width="5" />
+   <port
+       name="ring_buffer_cam_3_csr_waitrequest"
+       direction="output"
+       role="waitrequest"
+       width="1" />
+   <port
+       name="ring_buffer_cam_3_csr_write"
+       direction="input"
+       role="write"
+       width="1" />
+   <port
+       name="ring_buffer_cam_3_csr_writedata"
+       direction="input"
+       role="writedata"
+       width="32" />
+  </interface>
+  <interface name="ring_buffer_cam_3_filllevel" kind="avalon_streaming" start="1">
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="16" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="ring_buffer_cam_3_filllevel_data"
+       direction="output"
+       role="data"
+       width="16" />
+   <port
+       name="ring_buffer_cam_3_filllevel_valid"
+       direction="output"
+       role="valid"
+       width="1" />
+  </interface>
+  <interface name="run_control_signal" kind="avalon_streaming" start="0">
+   <property name="associatedClock" value="datapath_clock" />
+   <property name="associatedReset" value="datapath_reset" />
+   <property name="beatsPerCycle" value="1" />
+   <property name="dataBitsPerSymbol" value="9" />
+   <property name="emptyWithinPacket" value="false" />
+   <property name="errorDescriptor" value="" />
+   <property name="firstSymbolInHighOrderBits" value="true" />
+   <property name="highOrderSymbolAtMSB" value="false" />
+   <property name="maxChannel" value="0" />
+   <property name="packetDescription" value="" />
+   <property name="readyLatency" value="0" />
+   <property name="symbolsPerBeat" value="1" />
+   <port
+       name="run_control_signal_ready"
+       direction="output"
+       role="ready"
+       width="1" />
+   <port
+       name="run_control_signal_valid"
+       direction="input"
+       role="valid"
+       width="1" />
+   <port
+       name="run_control_signal_data"
+       direction="input"
+       role="data"
+       width="9" />
+  </interface>
+  <interface name="xcvr_clock" kind="clock" start="0">
+   <property name="clockRate" value="156250000" />
+   <property name="externallyDriven" value="false" />
+   <property name="ptfSchematicName" value="" />
+   <port name="xcvr_clock_clk" direction="input" role="clk" width="1" />
+  </interface>
+  <interface name="xcvr_reset" kind="reset" start="0">
+   <property name="associatedClock" value="xcvr_clock" />
+   <property name="synchronousEdges" value="BOTH" />
+   <port name="xcvr_reset_reset_n" direction="input" role="reset_n" width="1" />
+  </interface>
+ </perimeter>
+ <entity
+   path=""
+   parameterizationKey="hit_stack_system:1.0:AUTO_DATAPATH_CLOCK_CLOCK_DOMAIN=-1,AUTO_DATAPATH_CLOCK_CLOCK_RATE=-1,AUTO_DATAPATH_CLOCK_RESET_DOMAIN=-1,AUTO_DEVICE=5AGXBA7D4F31C5,AUTO_DEVICE_FAMILY=Arria V,AUTO_DEVICE_SPEEDGRADE=5_H4,AUTO_GENERATION_ID=1777034081,AUTO_UNIQUE_ID=,AUTO_XCVR_CLOCK_CLOCK_DOMAIN=-1,AUTO_XCVR_CLOCK_CLOCK_RATE=-1,AUTO_XCVR_CLOCK_RESET_DOMAIN=-1(altera_avalon_st_splitter:18.1:BITS_PER_SYMBOL=39,CHANNEL_WIDTH=4,DATA_WIDTH=39,EMPTY_WIDTH=1,ERROR_DESCRIPTOR=tserr,ERROR_WIDTH=1,MAX_CHANNELS=15,NUMBER_OF_OUTPUTS=4,QUALIFY_VALID_OUT=0,READY_LATENCY=0,USE_CHANNEL=1,USE_DATA=1,USE_ERROR=1,USE_PACKETS=1,USE_READY=1,USE_VALID=1)(clock_source:18.1:clockFrequency=125000000,clockFrequencyKnown=true,inputClockFrequency=0,resetSynchronousEdges=BOTH)(feb_frame_assembly:26.0.328:DEBUG=1,INTERLEAVING_FACTOR=4,N_SHD=128)(ring_buffer_cam:26.2.6.422:BUILD=422,CAM_STORE_BITS_DERIVED=4096,DEBUG=1,ENCODER_LEAF_WIDTH=16,ENCODER_PIPE_STAGES=4,ENTRY_ADDR_W_DERIVED=9,ENTRY_PAYLOAD_BITS_DERIVED=39,INSTANCE_ID=0,INTERLEAVING_BITS_DERIVED=2,INTERLEAVING_FACTOR=4,INTERLEAVING_INDEX=0,IP_UID=1380074317,N_PARTITIONS=4,PARTITION_ADDR_W_DERIVED=7,PARTITION_DEPTH_DERIVED=128,RING_BUFFER_N_ENTRY=512,SEARCH_KEY_WIDTH=8,SIDE_DATA_BITS=31,SIDE_STORE_BITS_DERIVED=20480,VERSION_DATE=20260422,VERSION_GIT=267039347,VERSION_MAJOR=26,VERSION_MINOR=2,VERSION_PATCH=6)(ring_buffer_cam:26.2.6.422:BUILD=422,CAM_STORE_BITS_DERIVED=4096,DEBUG=1,ENCODER_LEAF_WIDTH=16,ENCODER_PIPE_STAGES=4,ENTRY_ADDR_W_DERIVED=9,ENTRY_PAYLOAD_BITS_DERIVED=39,INSTANCE_ID=0,INTERLEAVING_BITS_DERIVED=2,INTERLEAVING_FACTOR=4,INTERLEAVING_INDEX=1,IP_UID=1380074317,N_PARTITIONS=4,PARTITION_ADDR_W_DERIVED=7,PARTITION_DEPTH_DERIVED=128,RING_BUFFER_N_ENTRY=512,SEARCH_KEY_WIDTH=8,SIDE_DATA_BITS=31,SIDE_STORE_BITS_DERIVED=20480,VERSION_DATE=20260422,VERSION_GIT=267039347,VERSION_MAJOR=26,VERSION_MINOR=2,VERSION_PATCH=6)(ring_buffer_cam:26.2.6.422:BUILD=422,CAM_STORE_BITS_DERIVED=4096,DEBUG=1,ENCODER_LEAF_WIDTH=16,ENCODER_PIPE_STAGES=4,ENTRY_ADDR_W_DERIVED=9,ENTRY_PAYLOAD_BITS_DERIVED=39,INSTANCE_ID=0,INTERLEAVING_BITS_DERIVED=2,INTERLEAVING_FACTOR=4,INTERLEAVING_INDEX=2,IP_UID=1380074317,N_PARTITIONS=4,PARTITION_ADDR_W_DERIVED=7,PARTITION_DEPTH_DERIVED=128,RING_BUFFER_N_ENTRY=512,SEARCH_KEY_WIDTH=8,SIDE_DATA_BITS=31,SIDE_STORE_BITS_DERIVED=20480,VERSION_DATE=20260422,VERSION_GIT=267039347,VERSION_MAJOR=26,VERSION_MINOR=2,VERSION_PATCH=6)(ring_buffer_cam:26.2.6.422:BUILD=422,CAM_STORE_BITS_DERIVED=4096,DEBUG=1,ENCODER_LEAF_WIDTH=16,ENCODER_PIPE_STAGES=4,ENTRY_ADDR_W_DERIVED=9,ENTRY_PAYLOAD_BITS_DERIVED=39,INSTANCE_ID=0,INTERLEAVING_BITS_DERIVED=2,INTERLEAVING_FACTOR=4,INTERLEAVING_INDEX=3,IP_UID=1380074317,N_PARTITIONS=4,PARTITION_ADDR_W_DERIVED=7,PARTITION_DEPTH_DERIVED=128,RING_BUFFER_N_ENTRY=512,SEARCH_KEY_WIDTH=8,SIDE_DATA_BITS=31,SIDE_STORE_BITS_DERIVED=20480,VERSION_DATE=20260422,VERSION_GIT=267039347,VERSION_MAJOR=26,VERSION_MINOR=2,VERSION_PATCH=6)(altera_avalon_st_splitter:18.1:BITS_PER_SYMBOL=9,CHANNEL_WIDTH=1,DATA_WIDTH=9,EMPTY_WIDTH=1,ERROR_DESCRIPTOR=,ERROR_WIDTH=1,MAX_CHANNELS=1,NUMBER_OF_OUTPUTS=6,QUALIFY_VALID_OUT=0,READY_LATENCY=0,USE_CHANNEL=0,USE_DATA=1,USE_ERROR=0,USE_PACKETS=0,USE_READY=1,USE_VALID=1)(altera_avalon_dc_fifo:18.1:BITS_PER_SYMBOL=9,CHANNEL_WIDTH=0,ENABLE_EXPLICIT_MAXCHANNEL=false,ERROR_WIDTH=0,EXPLICIT_MAXCHANNEL=0,FIFO_DEPTH=16,RD_SYNC_DEPTH=3,SYMBOLS_PER_BEAT=1,USE_IN_FILL_LEVEL=0,USE_OUT_FILL_LEVEL=0,USE_PACKETS=0,WR_SYNC_DEPTH=3)(clock_source:18.1:clockFrequency=156250000,clockFrequencyKnown=true,inputClockFrequency=0,resetSynchronousEdges=BOTH)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(avalon_streaming:18.1:)(clock:18.1:)(clock:18.1:)(clock:18.1:)(clock:18.1:)(clock:18.1:)(clock:18.1:)(clock:18.1:)(clock:18.1:)(clock:18.1:)(clock:18.1:)(reset:18.1:)(reset:18.1:)(reset:18.1:)(reset:18.1:)(reset:18.1:)(reset:18.1:)(reset:18.1:)(reset:18.1:)(reset:18.1:)(reset:18.1:)"
+   instancePathKey="hit_stack_system"
+   kind="hit_stack_system"
+   version="1.0"
+   name="hit_stack_system">
+  <parameter name="AUTO_GENERATION_ID" value="1777034081" />
+  <parameter name="AUTO_DEVICE" value="5AGXBA7D4F31C5" />
+  <parameter name="AUTO_DATAPATH_CLOCK_RESET_DOMAIN" value="-1" />
+  <parameter name="AUTO_DEVICE_FAMILY" value="Arria V" />
+  <parameter name="AUTO_DATAPATH_CLOCK_CLOCK_RATE" value="-1" />
+  <parameter name="AUTO_DATAPATH_CLOCK_CLOCK_DOMAIN" value="-1" />
+  <parameter name="AUTO_XCVR_CLOCK_CLOCK_RATE" value="-1" />
+  <parameter name="AUTO_XCVR_CLOCK_RESET_DOMAIN" value="-1" />
+  <parameter name="AUTO_UNIQUE_ID" value="" />
+  <parameter name="AUTO_XCVR_CLOCK_CLOCK_DOMAIN" value="-1" />
+  <parameter name="AUTO_DEVICE_SPEEDGRADE" value="5_H4" />
+  <generatedFiles>
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/hit_stack_system.vhd"
+       type="VHDL" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/hit_stack_system_data_splitter_0.vhd"
+       type="VHDL" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/hit_stack_system_run_control_splitter_0.vhd"
+       type="VHDL" />
+  </generatedFiles>
+  <childGeneratedFiles>
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_avalon_st_splitter.sv"
+       type="SYSTEM_VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/feb_frame_assembly.vhd"
+       type="VHDL"
+       attributes="TOP_LEVEL_FILE" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_dcfifo_w40d256_patched.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_dcfifo_w40d256.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_dcfifo_w48d4.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_scfifo_w40d8.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/main_fifo.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_parallel_add.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/search_for_extreme.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/search_for_extreme3.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/ring_buffer_cam.vhd"
+       type="VHDL"
+       attributes="TOP_LEVEL_FILE" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/ring_buffer_cam_v2_core.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/cam_helper_pkg.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_simple_dpram.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/cam_mem_a5.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/cam_mem_blk_a5.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_fifo/scfifo_w40d256.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_fifo/cmd_fifo/cmd_fifo.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/b2o_encoder.v"
+       type="VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/addr_enc_logic_small.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/addr_enc_logic_partitioned.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_avalon_dc_fifo.v"
+       type="VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_dcfifo_synchronizer_bundle.v"
+       type="VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_std_synchronizer_nocut.v"
+       type="VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_avalon_dc_fifo.sdc"
+       type="SDC"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_reset_controller.v"
+       type="VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_reset_synchronizer.v"
+       type="VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_reset_controller.sdc"
+       type="SDC"
+       attributes="" />
+  </childGeneratedFiles>
+  <sourceFiles>
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system.qsys" />
+  </sourceFiles>
+  <childSourceFiles>
+   <file
+       path="/data1/intelFPGA/18.1/ip/altera/avalon_st/altera_avalon_st_splitter/altera_avalon_st_splitter_hw.tcl" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/feb_frame_assembly/feb_frame_assembly_hw.tcl" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/ring-buffer_cam/script/ring_buffer_cam_hw.tcl" />
+   <file
+       path="/data1/intelFPGA/18.1/ip/altera/sopc_builder_ip/altera_avalon_dc_fifo/altera_avalon_dc_fifo_hw.tcl" />
+   <file
+       path="/data1/intelFPGA/18.1/ip/altera/merlin/altera_reset_controller/altera_reset_controller_hw.tcl" />
+  </childSourceFiles>
+  <messages>
+   <message level="Debug" culprit="hit_stack_system">queue size: 0 starting:hit_stack_system "hit_stack_system"</message>
+   <message level="Progress" culprit="min"></message>
+   <message level="Progress" culprit="max"></message>
+   <message level="Progress" culprit="current"></message>
+   <message level="Progress" culprit="current"></message>
+   <message level="Progress" culprit="current"></message>
+   <message level="Debug">Transform: CustomInstructionTransform</message>
+   <message level="Debug">No custom instruction connections, skipping transform </message>
+   <message level="Debug" culprit="merlin_custom_instruction_transform"><![CDATA[After transform: <b>10</b> modules, <b>35</b> connections]]></message>
+   <message level="Debug">Transform: MMTransform</message>
+   <message level="Debug">Transform: InterruptMapperTransform</message>
+   <message level="Debug">Transform: InterruptSyncTransform</message>
+   <message level="Debug">Transform: InterruptFanoutTransform</message>
+   <message level="Debug">Transform: AvalonStreamingTransform</message>
+   <message level="Debug">Transform: ResetAdaptation</message>
+   <message level="Progress" culprit="min"></message>
+   <message level="Progress" culprit="max"></message>
+   <message level="Progress" culprit="current"></message>
+   <message level="Progress" culprit="current"></message>
+   <message level="Progress" culprit="current"></message>
+   <message level="Progress" culprit="min"></message>
+   <message level="Progress" culprit="max"></message>
+   <message level="Progress" culprit="current"></message>
+   <message level="Progress" culprit="current"></message>
+   <message level="Progress" culprit="current"></message>
+   <message level="Debug" culprit="reset_adaptation_transform"><![CDATA[After transform: <b>12</b> modules, <b>39</b> connections]]></message>
+   <message level="Debug" culprit="hit_stack_system"><![CDATA["<b>hit_stack_system</b>" reuses <b>altera_avalon_st_splitter</b> "<b>submodules/altera_avalon_st_splitter</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system"><![CDATA["<b>hit_stack_system</b>" reuses <b>feb_frame_assembly</b> "<b>submodules/feb_frame_assembly</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system"><![CDATA["<b>hit_stack_system</b>" reuses <b>ring_buffer_cam</b> "<b>submodules/ring_buffer_cam</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system"><![CDATA["<b>hit_stack_system</b>" reuses <b>ring_buffer_cam</b> "<b>submodules/ring_buffer_cam</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system"><![CDATA["<b>hit_stack_system</b>" reuses <b>ring_buffer_cam</b> "<b>submodules/ring_buffer_cam</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system"><![CDATA["<b>hit_stack_system</b>" reuses <b>ring_buffer_cam</b> "<b>submodules/ring_buffer_cam</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system"><![CDATA["<b>hit_stack_system</b>" reuses <b>altera_avalon_st_splitter</b> "<b>submodules/altera_avalon_st_splitter</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system"><![CDATA["<b>hit_stack_system</b>" reuses <b>altera_avalon_dc_fifo</b> "<b>submodules/altera_avalon_dc_fifo</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system"><![CDATA["<b>hit_stack_system</b>" reuses <b>altera_reset_controller</b> "<b>submodules/altera_reset_controller</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system"><![CDATA["<b>hit_stack_system</b>" reuses <b>altera_reset_controller</b> "<b>submodules/altera_reset_controller</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system"><![CDATA["<b>hit_stack_system</b>" reuses <b>altera_avalon_st_splitter</b> "<b>submodules/altera_avalon_st_splitter</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system"><![CDATA["<b>hit_stack_system</b>" reuses <b>altera_avalon_st_splitter</b> "<b>submodules/altera_avalon_st_splitter</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system">queue size: 11 starting:altera_avalon_st_splitter "submodules/altera_avalon_st_splitter"</message>
+   <message level="Info" culprit="data_splitter_0"><![CDATA["<b>hit_stack_system</b>" instantiated <b>altera_avalon_st_splitter</b> "<b>data_splitter_0</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system">queue size: 10 starting:feb_frame_assembly "submodules/feb_frame_assembly"</message>
+   <message level="Info" culprit="feb_frame_assembly_0"><![CDATA["<b>hit_stack_system</b>" instantiated <b>feb_frame_assembly</b> "<b>feb_frame_assembly_0</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system">queue size: 9 starting:ring_buffer_cam "submodules/ring_buffer_cam"</message>
+   <message level="Info" culprit="ring_buffer_cam_0"><![CDATA["<b>hit_stack_system</b>" instantiated <b>ring_buffer_cam</b> "<b>ring_buffer_cam_0</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system">queue size: 4 starting:altera_avalon_dc_fifo "submodules/altera_avalon_dc_fifo"</message>
+   <message level="Info" culprit="run_ctrl_cdc_d2x"><![CDATA["<b>hit_stack_system</b>" instantiated <b>altera_avalon_dc_fifo</b> "<b>run_ctrl_cdc_d2x</b>"]]></message>
+   <message level="Debug" culprit="hit_stack_system">queue size: 3 starting:altera_reset_controller "submodules/altera_reset_controller"</message>
+   <message level="Info" culprit="rst_controller"><![CDATA["<b>hit_stack_system</b>" instantiated <b>altera_reset_controller</b> "<b>rst_controller</b>"]]></message>
+  </messages>
+ </entity>
+ <entity
+   path="submodules/"
+   parameterizationKey="altera_avalon_st_splitter:18.1:BITS_PER_SYMBOL=39,CHANNEL_WIDTH=4,DATA_WIDTH=39,EMPTY_WIDTH=1,ERROR_DESCRIPTOR=tserr,ERROR_WIDTH=1,MAX_CHANNELS=15,NUMBER_OF_OUTPUTS=4,QUALIFY_VALID_OUT=0,READY_LATENCY=0,USE_CHANNEL=1,USE_DATA=1,USE_ERROR=1,USE_PACKETS=1,USE_READY=1,USE_VALID=1"
+   instancePathKey="hit_stack_system:.:data_splitter_0"
+   kind="altera_avalon_st_splitter"
+   version="18.1"
+   name="altera_avalon_st_splitter">
+  <parameter name="NUMBER_OF_OUTPUTS" value="4" />
+  <parameter name="USE_DATA" value="1" />
+  <parameter name="ERROR_DESCRIPTOR" value="tserr" />
+  <parameter name="USE_PACKETS" value="1" />
+  <parameter name="USE_READY" value="1" />
+  <parameter name="MAX_CHANNELS" value="15" />
+  <parameter name="USE_ERROR" value="1" />
+  <parameter name="EMPTY_WIDTH" value="1" />
+  <parameter name="CHANNEL_WIDTH" value="4" />
+  <parameter name="READY_LATENCY" value="0" />
+  <parameter name="DATA_WIDTH" value="39" />
+  <parameter name="BITS_PER_SYMBOL" value="39" />
+  <parameter name="ERROR_WIDTH" value="1" />
+  <parameter name="QUALIFY_VALID_OUT" value="0" />
+  <parameter name="USE_VALID" value="1" />
+  <parameter name="USE_CHANNEL" value="1" />
+  <generatedFiles>
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_avalon_st_splitter.sv"
+       type="SYSTEM_VERILOG"
+       attributes="" />
+  </generatedFiles>
+  <childGeneratedFiles/>
+  <sourceFiles>
+   <file
+       path="/data1/intelFPGA/18.1/ip/altera/avalon_st/altera_avalon_st_splitter/altera_avalon_st_splitter_hw.tcl" />
+  </sourceFiles>
+  <childSourceFiles/>
+  <instantiator
+     instantiator="hit_stack_system"
+     as="data_splitter_0,run_control_splitter_0,data_splitter_0,run_control_splitter_0" />
+  <messages>
+   <message level="Debug" culprit="hit_stack_system">queue size: 11 starting:altera_avalon_st_splitter "submodules/altera_avalon_st_splitter"</message>
+   <message level="Info" culprit="data_splitter_0"><![CDATA["<b>hit_stack_system</b>" instantiated <b>altera_avalon_st_splitter</b> "<b>data_splitter_0</b>"]]></message>
+  </messages>
+ </entity>
+ <entity
+   path="submodules/"
+   parameterizationKey="feb_frame_assembly:26.0.328:DEBUG=1,INTERLEAVING_FACTOR=4,N_SHD=128"
+   instancePathKey="hit_stack_system:.:feb_frame_assembly_0"
+   kind="feb_frame_assembly"
+   version="26.0.328"
+   name="feb_frame_assembly">
+  <parameter name="N_SHD" value="128" />
+  <parameter name="INTERLEAVING_FACTOR" value="4" />
+  <parameter name="DEBUG" value="1" />
+  <generatedFiles>
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/feb_frame_assembly.vhd"
+       type="VHDL"
+       attributes="TOP_LEVEL_FILE" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_dcfifo_w40d256_patched.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_dcfifo_w40d256.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_dcfifo_w48d4.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_scfifo_w40d8.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/main_fifo.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_parallel_add.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/search_for_extreme.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/search_for_extreme3.vhd"
+       type="VHDL"
+       attributes="" />
+  </generatedFiles>
+  <childGeneratedFiles/>
+  <sourceFiles>
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/feb_frame_assembly/feb_frame_assembly_hw.tcl" />
+  </sourceFiles>
+  <childSourceFiles/>
+  <instantiator instantiator="hit_stack_system" as="feb_frame_assembly_0" />
+  <messages>
+   <message level="Debug" culprit="hit_stack_system">queue size: 10 starting:feb_frame_assembly "submodules/feb_frame_assembly"</message>
+   <message level="Info" culprit="feb_frame_assembly_0"><![CDATA["<b>hit_stack_system</b>" instantiated <b>feb_frame_assembly</b> "<b>feb_frame_assembly_0</b>"]]></message>
+  </messages>
+ </entity>
+ <entity
+   path="submodules/"
+   parameterizationKey="ring_buffer_cam:26.2.6.422:BUILD=422,CAM_STORE_BITS_DERIVED=4096,DEBUG=1,ENCODER_LEAF_WIDTH=16,ENCODER_PIPE_STAGES=4,ENTRY_ADDR_W_DERIVED=9,ENTRY_PAYLOAD_BITS_DERIVED=39,INSTANCE_ID=0,INTERLEAVING_BITS_DERIVED=2,INTERLEAVING_FACTOR=4,INTERLEAVING_INDEX=0,IP_UID=1380074317,N_PARTITIONS=4,PARTITION_ADDR_W_DERIVED=7,PARTITION_DEPTH_DERIVED=128,RING_BUFFER_N_ENTRY=512,SEARCH_KEY_WIDTH=8,SIDE_DATA_BITS=31,SIDE_STORE_BITS_DERIVED=20480,VERSION_DATE=20260422,VERSION_GIT=267039347,VERSION_MAJOR=26,VERSION_MINOR=2,VERSION_PATCH=6"
+   instancePathKey="hit_stack_system:.:ring_buffer_cam_0"
+   kind="ring_buffer_cam"
+   version="26.2.6.422"
+   name="ring_buffer_cam">
+  <parameter name="INTERLEAVING_INDEX" value="0" />
+  <parameter name="RING_BUFFER_N_ENTRY" value="512" />
+  <parameter name="PARTITION_ADDR_W_DERIVED" value="7" />
+  <parameter name="VERSION_MAJOR" value="26" />
+  <parameter name="BUILD" value="422" />
+  <parameter name="N_PARTITIONS" value="4" />
+  <parameter name="VERSION_DATE" value="20260422" />
+  <parameter name="INTERLEAVING_BITS_DERIVED" value="2" />
+  <parameter name="DEBUG" value="1" />
+  <parameter name="INSTANCE_ID" value="0" />
+  <parameter name="VERSION_GIT" value="267039347" />
+  <parameter name="CAM_STORE_BITS_DERIVED" value="4096" />
+  <parameter name="PARTITION_DEPTH_DERIVED" value="128" />
+  <parameter name="ENTRY_ADDR_W_DERIVED" value="9" />
+  <parameter name="SEARCH_KEY_WIDTH" value="8" />
+  <parameter name="ENCODER_LEAF_WIDTH" value="16" />
+  <parameter name="SIDE_DATA_BITS" value="31" />
+  <parameter name="VERSION_MINOR" value="2" />
+  <parameter name="ENCODER_PIPE_STAGES" value="4" />
+  <parameter name="ENTRY_PAYLOAD_BITS_DERIVED" value="39" />
+  <parameter name="INTERLEAVING_FACTOR" value="4" />
+  <parameter name="IP_UID" value="1380074317" />
+  <parameter name="VERSION_PATCH" value="6" />
+  <parameter name="SIDE_STORE_BITS_DERIVED" value="20480" />
+  <generatedFiles>
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/ring_buffer_cam.vhd"
+       type="VHDL"
+       attributes="TOP_LEVEL_FILE" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/ring_buffer_cam_v2_core.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/cam_helper_pkg.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_simple_dpram.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/cam_mem_a5.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/cam_mem_blk_a5.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_fifo/scfifo_w40d256.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/alt_fifo/cmd_fifo/cmd_fifo.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/b2o_encoder.v"
+       type="VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/addr_enc_logic_small.vhd"
+       type="VHDL"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/addr_enc_logic_partitioned.vhd"
+       type="VHDL"
+       attributes="" />
+  </generatedFiles>
+  <childGeneratedFiles/>
+  <sourceFiles>
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/ring-buffer_cam/script/ring_buffer_cam_hw.tcl" />
+  </sourceFiles>
+  <childSourceFiles/>
+  <instantiator
+     instantiator="hit_stack_system"
+     as="ring_buffer_cam_0,ring_buffer_cam_1,ring_buffer_cam_2,ring_buffer_cam_3" />
+  <messages>
+   <message level="Debug" culprit="hit_stack_system">queue size: 9 starting:ring_buffer_cam "submodules/ring_buffer_cam"</message>
+   <message level="Info" culprit="ring_buffer_cam_0"><![CDATA["<b>hit_stack_system</b>" instantiated <b>ring_buffer_cam</b> "<b>ring_buffer_cam_0</b>"]]></message>
+  </messages>
+ </entity>
+ <entity
+   path="submodules/"
+   parameterizationKey="altera_avalon_dc_fifo:18.1:BITS_PER_SYMBOL=9,CHANNEL_WIDTH=0,ENABLE_EXPLICIT_MAXCHANNEL=false,ERROR_WIDTH=0,EXPLICIT_MAXCHANNEL=0,FIFO_DEPTH=16,RD_SYNC_DEPTH=3,SYMBOLS_PER_BEAT=1,USE_IN_FILL_LEVEL=0,USE_OUT_FILL_LEVEL=0,USE_PACKETS=0,WR_SYNC_DEPTH=3"
+   instancePathKey="hit_stack_system:.:run_ctrl_cdc_d2x"
+   kind="altera_avalon_dc_fifo"
+   version="18.1"
+   name="altera_avalon_dc_fifo">
+  <parameter name="EXPLICIT_MAXCHANNEL" value="0" />
+  <parameter name="ENABLE_EXPLICIT_MAXCHANNEL" value="false" />
+  <generatedFiles>
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_avalon_dc_fifo.v"
+       type="VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_dcfifo_synchronizer_bundle.v"
+       type="VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_std_synchronizer_nocut.v"
+       type="VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_avalon_dc_fifo.sdc"
+       type="SDC"
+       attributes="" />
+  </generatedFiles>
+  <childGeneratedFiles/>
+  <sourceFiles>
+   <file
+       path="/data1/intelFPGA/18.1/ip/altera/sopc_builder_ip/altera_avalon_dc_fifo/altera_avalon_dc_fifo_hw.tcl" />
+  </sourceFiles>
+  <childSourceFiles/>
+  <instantiator instantiator="hit_stack_system" as="run_ctrl_cdc_d2x" />
+  <messages>
+   <message level="Debug" culprit="hit_stack_system">queue size: 4 starting:altera_avalon_dc_fifo "submodules/altera_avalon_dc_fifo"</message>
+   <message level="Info" culprit="run_ctrl_cdc_d2x"><![CDATA["<b>hit_stack_system</b>" instantiated <b>altera_avalon_dc_fifo</b> "<b>run_ctrl_cdc_d2x</b>"]]></message>
+  </messages>
+ </entity>
+ <entity
+   path="submodules/"
+   parameterizationKey="altera_reset_controller:18.1:ADAPT_RESET_REQUEST=0,MIN_RST_ASSERTION_TIME=3,NUM_RESET_INPUTS=1,OUTPUT_RESET_SYNC_EDGES=deassert,RESET_REQUEST_PRESENT=0,RESET_REQ_EARLY_DSRT_TIME=1,RESET_REQ_WAIT_TIME=1,SYNC_DEPTH=2,USE_RESET_REQUEST_IN0=0,USE_RESET_REQUEST_IN1=0,USE_RESET_REQUEST_IN10=0,USE_RESET_REQUEST_IN11=0,USE_RESET_REQUEST_IN12=0,USE_RESET_REQUEST_IN13=0,USE_RESET_REQUEST_IN14=0,USE_RESET_REQUEST_IN15=0,USE_RESET_REQUEST_IN2=0,USE_RESET_REQUEST_IN3=0,USE_RESET_REQUEST_IN4=0,USE_RESET_REQUEST_IN5=0,USE_RESET_REQUEST_IN6=0,USE_RESET_REQUEST_IN7=0,USE_RESET_REQUEST_IN8=0,USE_RESET_REQUEST_IN9=0,USE_RESET_REQUEST_INPUT=0"
+   instancePathKey="hit_stack_system:.:rst_controller"
+   kind="altera_reset_controller"
+   version="18.1"
+   name="altera_reset_controller">
+  <generatedFiles>
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_reset_controller.v"
+       type="VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_reset_synchronizer.v"
+       type="VERILOG"
+       attributes="" />
+   <file
+       path="/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis/submodules/altera_reset_controller.sdc"
+       type="SDC"
+       attributes="" />
+  </generatedFiles>
+  <childGeneratedFiles/>
+  <sourceFiles>
+   <file
+       path="/data1/intelFPGA/18.1/ip/altera/merlin/altera_reset_controller/altera_reset_controller_hw.tcl" />
+  </sourceFiles>
+  <childSourceFiles/>
+  <instantiator
+     instantiator="hit_stack_system"
+     as="rst_controller,rst_controller_001" />
+  <messages>
+   <message level="Debug" culprit="hit_stack_system">queue size: 3 starting:altera_reset_controller "submodules/altera_reset_controller"</message>
+   <message level="Info" culprit="rst_controller"><![CDATA["<b>hit_stack_system</b>" instantiated <b>altera_reset_controller</b> "<b>rst_controller</b>"]]></message>
+  </messages>
+ </entity>
+</deploy>

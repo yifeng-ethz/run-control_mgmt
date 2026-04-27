@@ -1,4 +1,8 @@
-# DV Cross Cases: runctl_mgmt_host
+# DV Cross — runctl_mgmt_host
+
+**Companion docs:** `README.md`, `DV_PLAN.md`, `DV_HARNESS.md`,
+`DV_BASIC.md`, `DV_EDGE.md`, `DV_ERROR.md`, `DV_PROF.md`,
+`BUG_HISTORY.md`
 
 **Parent:** [DV_PLAN.md](DV_PLAN.md)
 **DUT:** `runctl_mgmt_host`

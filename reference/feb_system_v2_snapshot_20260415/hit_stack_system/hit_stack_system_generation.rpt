@@ -1,0 +1,41 @@
+Info: Starting: Create HDL design files for synthesis
+Info: qsys-generate /home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system.qsys --synthesis=VHDL --output-directory=/home/yifeng/packages/mu3e_ip_dev/mu3e-ip-cores/run-control_mgmt/reference/feb_system_v2_snapshot_20260415/hit_stack_system/synthesis --family="Arria V" --part=5AGXBA7D4F31C5
+Progress: Loading feb_system_v2_snapshot_20260415/hit_stack_system.qsys
+Progress: Reading input file
+Progress: Adding data_splitter_0 [altera_avalon_st_splitter 18.1]
+Progress: Parameterizing module data_splitter_0
+Progress: Adding datapath_clock_0 [clock_source 18.1]
+Progress: Parameterizing module datapath_clock_0
+Progress: Adding feb_frame_assembly_0 [feb_frame_assembly 26.0.328]
+Progress: Parameterizing module feb_frame_assembly_0
+Progress: Adding ring_buffer_cam_0 [ring_buffer_cam 26.0.330]
+Warning: ring_buffer_cam_0: Used ring_buffer_cam 26.2.6.422 (instead of 26.0.330)
+Progress: Parameterizing module ring_buffer_cam_0
+Progress: Adding ring_buffer_cam_1 [ring_buffer_cam 26.0.330]
+Warning: ring_buffer_cam_1: Used ring_buffer_cam 26.2.6.422 (instead of 26.0.330)
+Progress: Parameterizing module ring_buffer_cam_1
+Progress: Adding ring_buffer_cam_2 [ring_buffer_cam 26.0.330]
+Warning: ring_buffer_cam_2: Used ring_buffer_cam 26.2.6.422 (instead of 26.0.330)
+Progress: Parameterizing module ring_buffer_cam_2
+Progress: Adding ring_buffer_cam_3 [ring_buffer_cam 26.0.330]
+Warning: ring_buffer_cam_3: Used ring_buffer_cam 26.2.6.422 (instead of 26.0.330)
+Progress: Parameterizing module ring_buffer_cam_3
+Progress: Adding run_control_splitter_0 [altera_avalon_st_splitter 18.1]
+Progress: Parameterizing module run_control_splitter_0
+Progress: Adding run_ctrl_cdc_d2x [altera_avalon_dc_fifo 18.1]
+Progress: Parameterizing module run_ctrl_cdc_d2x
+Progress: Adding xcvr_clock_0 [clock_source 18.1]
+Progress: Parameterizing module xcvr_clock_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+Info: hit_stack_system: Generating hit_stack_system "hit_stack_system" for QUARTUS_SYNTH
+Info: data_splitter_0: "hit_stack_system" instantiated altera_avalon_st_splitter "data_splitter_0"
+Info: feb_frame_assembly_0: "hit_stack_system" instantiated feb_frame_assembly "feb_frame_assembly_0"
+Info: ring_buffer_cam_0: "hit_stack_system" instantiated ring_buffer_cam "ring_buffer_cam_0"
+Info: run_ctrl_cdc_d2x: "hit_stack_system" instantiated altera_avalon_dc_fifo "run_ctrl_cdc_d2x"
+Info: rst_controller: "hit_stack_system" instantiated altera_reset_controller "rst_controller"
+Info: hit_stack_system: Done "hit_stack_system" with 6 modules, 31 files
+Info: qsys-generate succeeded.
+Info: Finished: Create HDL design files for synthesis

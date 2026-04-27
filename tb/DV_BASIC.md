@@ -1,4 +1,8 @@
-# runctl_mgmt_host DV -- Basic Functional Cases
+# DV Basic — runctl_mgmt_host
+
+**Companion docs:** `README.md`, `DV_PLAN.md`, `DV_HARNESS.md`,
+`DV_EDGE.md`, `DV_CROSS.md`, `DV_ERROR.md`, `DV_PROF.md`,
+`BUG_HISTORY.md`
 
 **Parent:** [DV_PLAN.md](DV_PLAN.md)
 **ID Range:** B001-B999
@@ -519,11 +523,11 @@ One directed test per defined synclink command byte. Each test sends the command
 
 - **ID:** B018_rx_cmd_count
 - **Category:** Counter / RX_CMD_COUNT
-- **Goal:** Prove that `RX_CMD_COUNT` increments by exactly one per accepted synclink command across a small mixed batch of eight commands.
+- **Goal:** Prove that `RX_CMD_COUNT` increments by exactly one per accepted synclink command across a mixed batch of thirteen commands.
 - **Setup:** Post-reset idle. Scoreboard baseline `RX_CMD_COUNT = 0`.
 - **Stimulus sequence:**
   1. Read RX_CMD_COUNT baseline.
-  2. Send the following eight synclink commands in order (no errors injected):
+  2. Send the following thirteen synclink commands in order (no errors injected):
 
      | Order | Cmd  | Payload |
      |-------|------|---------|
@@ -535,17 +539,22 @@ One directed test per defined synclink command byte. Each test sends the command
      | 6 | 0x33 | none |
      | 7 | 0x40 | 0x1234 |
      | 8 | 0x14 | none |
+     | 9 | 0x20 | none |
+     | 10 | 0x21 | none |
+     | 11 | 0x24 | none |
+     | 12 | 0x26 | none |
+     | 13 | 0x25 | none |
 
   3. After each command, wait for `recv_idle && host_idle`.
   4. Read RX_CMD_COUNT.
 - **Expected result:**
-  1. RX_CMD_COUNT at end = baseline + 8.
-  2. Runctl sink receives seven transactions (all except `0x40`).
+  1. RX_CMD_COUNT at end = baseline + 13.
+  2. Runctl sink receives twelve transactions (all except `0x40`).
   3. Upload sink receives two ack packets (one for `0x10` with `0xFE`, one for `0x13` with `0xFD`).
-  4. Log FIFO usedw advanced by 32 (8 sentences × 4 sub-words).
-- **Coverage bins hit:** `csr_addr_read[0x0F]`, `cmd_byte_synclink[0x10]`, `cmd_byte_synclink[0x11]`, `cmd_byte_synclink[0x12]`, `cmd_byte_synclink[0x13]`, `cmd_byte_synclink[0x14]`, `cmd_byte_synclink[0x32]`, `cmd_byte_synclink[0x33]`, `cmd_byte_synclink[0x40]`, `cmd_payload_runprep[0]`, `cmd_payload_address[mid]`, `upload_ack_class[K30.7]`, `upload_ack_class[K29.7]`
+  4. Log FIFO usedw advanced by 52 (13 sentences × 4 sub-words).
+- **Coverage bins hit:** `csr_addr_read[0x0F]`, `cmd_byte_synclink[0x10]`, `cmd_byte_synclink[0x11]`, `cmd_byte_synclink[0x12]`, `cmd_byte_synclink[0x13]`, `cmd_byte_synclink[0x14]`, `cmd_byte_synclink[0x20]`, `cmd_byte_synclink[0x21]`, `cmd_byte_synclink[0x24]`, `cmd_byte_synclink[0x25]`, `cmd_byte_synclink[0x26]`, `cmd_byte_synclink[0x32]`, `cmd_byte_synclink[0x33]`, `cmd_byte_synclink[0x40]`, `cmd_payload_runprep[0]`, `cmd_payload_address[mid]`, `upload_ack_class[K30.7]`, `upload_ack_class[K29.7]`
 - **Pass criteria:**
-  1. RX_CMD_COUNT delta = 8.
+  1. RX_CMD_COUNT delta = 13.
   2. Scoreboard runctl count = 7, upload ack count = 2.
 - **Status:** planned
 

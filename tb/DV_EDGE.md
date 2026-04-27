@@ -1,5 +1,9 @@
 # runctl_mgmt_host DV — Edge Cases
 
+**Companion docs:** `README.md`, `DV_PLAN.md`, `DV_HARNESS.md`,
+`DV_BASIC.md`, `DV_CROSS.md`, `DV_ERROR.md`, `DV_PROF.md`,
+`BUG_HISTORY.md`
+
 **Parent:** [DV_PLAN.md](DV_PLAN.md)
 **Canonical ID range:** E001-E020 (exactly as listed in DV_PLAN.md section 6.2)
 **Total:** 20 cases
@@ -554,6 +558,13 @@ Default clock config unless stated otherwise: `lvdspll_clk = 125 MHz`, `mm_clk =
 
 **Status:** planned
 
+**Related implemented reproducer**
+
+- `runctl_mgmt_host_local_cmd_backpressure_test` is the current direct
+  standalone regression for the adjacent held-write / waitrequest-release bug
+  tracked as `BUG-001-R`. It does not yet cover the exact explicit second-write
+  drop described in this planned E013 case.
+
 ---
 
 ## E014_soft_reset_idle
@@ -918,7 +929,7 @@ Each row is self-contained (stimulus + expected in 1-2 sentences). Every case te
 | E094_recv_state_enc_sweep | STATUS encoding | Park recv FSM in each of {IDLE=0x00, RX_PAYLOAD=0x01, LOGGING=0x02, LOG_ERROR=0x03, CLEANUP=0x04}; read STATUS[15:8]. | Exact 8-bit encoding observed per state as listed. |
 | E095_host_state_enc_sweep | STATUS encoding | Park host FSM in each of {IDLE=0x00, POSTING=0x01, CLEANUP=0x02}; read STATUS[23:16]. | Exact 8-bit encoding per state. |
 | E096_local_cmd_vs_synclink_prio | local_cmd priority | Drive a synclink valid byte and a local_cmd_pending_lvds toggle arriving on the same lvdspll cycle when recv is in RECV_IDLE. | local_cmd wins (local_cmd fans out first); synclink byte stalls back one cycle and still processes; RX_CMD_COUNT+=2 in local-then-synclink order. |
-| E097_local_cmd_busy_timing | local_cmd timing | Write LOCAL_CMD (0x13) then read STATUS on the very next mm_clk cycle; poll STATUS.local_cmd_busy until clear. | bit[30] asserted within 1 mm_clk of the write completion; clears within CDC round-trip budget (~6 mm_clk cycles typical). |
+| E097_local_cmd_busy_timing | local_cmd timing | Write LOCAL_CMD (0x13) then read STATUS on the very next mm_clk cycle; poll STATUS.local_cmd_busy until clear. | bit[30] asserted within 1 mm_clk of the write completion; clears within CDC round-trip budget (~6 mm_clk cycles typical). Current direct reproducer for the held-write subcase: `runctl_mgmt_host_local_cmd_backpressure_test` (`BUG-001-R`). |
 | E098_csr_waitrequest_release | CSR waitrequest | Issue LOCAL_CMD write stall scenario: second write lands while busy=1 and `avs_csr_waitrequest=1`. Observe release timing. | Waitrequest releases exactly 1 mm_clk cycle after local_cmd_busy clears; second write then completes; scoreboard sees correct serialization. |
 | E099_meta_sel_boundary | META selector | Write META=0 read; write META=1 read; write META=2 read; write META=3 read; write META=0xFFFF_FFFC read; write META=0x00000005 read. | Reads 1,2,3,4 return pages 0,1,2,3; read 5 returns page 0 (lower 2 bits of 0xFFFF_FFFC = 00); read 6 returns page 1 (lower 2 bits of 0x05 = 01). |
 | E100_fpga_address_sticky | sticky valid | Send CMD_ADDRESS addr=0x1111; then send 10 other commands (mixture excluding 0x40); read FPGA_ADDRESS each time. | After every intermediate command, FPGA_ADDRESS[15:0]=0x1111 and [31]=1 sticky-valid, unchanged by other commands. |

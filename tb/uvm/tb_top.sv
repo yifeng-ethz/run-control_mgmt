@@ -34,7 +34,9 @@ module tb_top;
     upload_vif.ready = 1'b1;
   end
 
-  runctl_mgmt_host_dut_wrapper dut (
+  runctl_mgmt_host_dut_wrapper #(
+    .EXT_HARD_RESET_PULSE_CYCLES(16'd32)
+  ) dut (
     .asi_synclink_data       (synclink_vif.data),
     .asi_synclink_error      (synclink_vif.error),
     .aso_upload_data         (upload_vif.data),
@@ -67,6 +69,8 @@ module tb_top;
       null, "uvm_test_top.env.csr_agent.driver", "vif", csr_vif);
     uvm_config_db#(virtual runctl_if.mon)::set(
       null, "uvm_test_top.env.runctl_monitor_h", "vif", runctl_vif);
+    uvm_config_db#(virtual runctl_if)::set(
+      null, "uvm_test_top", "runctl_ctl_vif", runctl_vif);
     uvm_config_db#(virtual upload_if.mon)::set(
       null, "uvm_test_top.env.upload_monitor_h", "vif", upload_vif);
     uvm_config_db#(virtual reset_if.mon)::set(

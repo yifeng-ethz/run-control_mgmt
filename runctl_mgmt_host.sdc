@@ -41,7 +41,9 @@ proc rcmh_apply_false_path_pair {from_nodes to_nodes} {
 proc constrain_rcmh_mm_to_lvds_cdc {} {
     # CSR-driven toggle/data/mask controls are sampled in the lvds domain only
     # through explicit synchronizer chains or held-stable shadow buses.
-    set local_cmd_word_src  [rcmh_get_registers_any [rcmh_node_patterns {local_cmd_word_mm[*]}]]
+    set local_cmd_word_src  [rcmh_get_registers_any [concat \
+        [rcmh_node_patterns {local_cmd_word_mm[*]}] \
+        [rcmh_node_patterns {local_cmd_hold_word_mm[*]}]]]
     set local_cmd_word_meta [rcmh_get_registers_any [rcmh_node_patterns {local_cmd_word_lvds_sync_q0[*]}]]
     set local_cmd_req_src   [rcmh_get_registers_any [rcmh_node_patterns {local_cmd_req_mm}]]
     set local_cmd_req_meta  [rcmh_get_registers_any [rcmh_node_patterns {local_cmd_req_lvds_sync[*]}]]

@@ -11,7 +11,8 @@ module runctl_mgmt_host_dut_wrapper #(
   parameter logic [11:0] BUILD                = 12'h413,
   parameter logic [31:0] VERSION_DATE         = 32'h2026_0413,
   parameter logic [31:0] VERSION_GIT          = 32'h0,
-  parameter logic [31:0] INSTANCE_ID          = 32'h0
+  parameter logic [31:0] INSTANCE_ID          = 32'h0,
+  parameter logic [15:0] EXT_HARD_RESET_PULSE_CYCLES = 16'd16384
 ) (
   input  logic [8:0]  asi_synclink_data,
   input  logic [2:0]  asi_synclink_error,
@@ -49,7 +50,8 @@ module runctl_mgmt_host_dut_wrapper #(
     .BUILD               (BUILD),
     .VERSION_DATE        (VERSION_DATE),
     .VERSION_GIT         (VERSION_GIT),
-    .INSTANCE_ID         (INSTANCE_ID)
+    .INSTANCE_ID         (INSTANCE_ID),
+    .EXT_HARD_RESET_PULSE_CYCLES(EXT_HARD_RESET_PULSE_CYCLES)
   ) dut (
     .asi_synclink_data      (asi_synclink_data),
     .asi_synclink_error     (asi_synclink_error),

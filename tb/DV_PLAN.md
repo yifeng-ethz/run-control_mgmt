@@ -1,11 +1,15 @@
 # DV Plan: runctl_mgmt_host (SystemVerilog rewrite)
 
 **DUT:** `runctl_mgmt_host`
-**IP source:** `rtl/runctl_mgmt_host.sv` (planned)
+**IP source:** `rtl/runctl_mgmt_host.sv`
 **Legacy reference:** `legacy/runctl_mgmt_host_v24.vhd` (semantics frozen for synclink/runctl/upload datapath)
 **Author:** Yifeng Wang (yifenwan@phys.ethz.ch)
 **Date:** 2026-04-13
-**Status:** Planning. No test cases are implemented yet. This document is the canonical catalog and supersedes `legacy/dv_docs/DV_PLAN.md`.
+**Status:** Active plan with an implemented standalone smoke harness. The
+QuestaOne 2026 `run_uvm_smoke` rerun passes on this host; broader bucketed
+coverage in this document remains planned until promoted into refreshed live
+reports. This document is the canonical catalog and supersedes
+`legacy/dv_docs/DV_PLAN.md`.
 
 ---
 
@@ -143,8 +147,13 @@
 | 0x12 | START_RUN     | none | Fanout only |
 | 0x13 | END_RUN       | none | Generates upload ack with K29.7 (0xFD) |
 | 0x14 | ABORT_RUN     | none | Fanout only |
-| 0x30 | RESET         | **synclink: none** (broadcast, spec-aligned with Mu3e SpecBook §4.6.2); `local_cmd`: optional 16b assert mask in the upper 24b of CSR_LOCAL_CMD | Asserts exported `ext_hard_reset`; drives local `dp_hard_reset` / `ct_hard_reset` subject to the CONTROL mask bits. Synclink path latches `assert_mask = 0xFFFF` (all channels). |
-| 0x31 | STOP_RESET    | **synclink: none** (broadcast, spec-aligned with Mu3e SpecBook §4.6.2); `local_cmd`: optional 16b release mask in the upper 24b of CSR_LOCAL_CMD | Deasserts exported `ext_hard_reset`; releases local `dp_hard_reset` / `ct_hard_reset` subject to the CONTROL mask bits. Synclink path latches `release_mask = 0xFFFF`. |
+| 0x20 | START_LINK_TEST | none | Fanout LINK_TEST |
+| 0x21 | STOP_LINK_TEST | none | Fanout IDLE |
+| 0x24 | START_SYNC_TEST | none | Fanout SYNC_TEST |
+| 0x25 | STOP_SYNC_TEST | none | Fanout IDLE |
+| 0x26 | TEST_SYNC     | none | Fanout SYNC_TEST pulse/state |
+| 0x30 | RESET         | **synclink: none** (broadcast, spec-aligned with Mu3e SpecBook §4.6.2); `local_cmd`: optional 16b assert mask in the upper 24b of CSR_LOCAL_CMD | Pulses exported `ext_hard_reset` for `EXT_HARD_RESET_PULSE_CYCLES`; drives local `dp_hard_reset` / `ct_hard_reset` subject to the CONTROL mask bits. Synclink path latches `assert_mask = 0xFFFF` (all channels). |
+| 0x31 | STOP_RESET    | **synclink: none** (broadcast, spec-aligned with Mu3e SpecBook §4.6.2); `local_cmd`: optional 16b release mask in the upper 24b of CSR_LOCAL_CMD | Cancels any active `ext_hard_reset` pulse; releases local `dp_hard_reset` / `ct_hard_reset` subject to the CONTROL mask bits. Synclink path latches `release_mask = 0xFFFF`. |
 | 0x32 | ENABLE        | none | Fanout only |
 | 0x33 | DISABLE       | none | Fanout only |
 | 0x40 | ADDRESS       | 16b fpga address | Latches CSR.FPGA_ADDRESS only; does NOT fan out on runctl |
@@ -166,7 +175,13 @@ A separate `DV_HARNESS.md` describes the UVM environment, agents, scoreboard, an
 
 ## 5. Coverage Model
 
-Implementation constraint: the simulator is **Questa FSE Starter Edition** (`/home/yifeng/CLAUDE.md`). This edition supports neither `covergroup` / `cross` nor `rand` / `constraint` and does not link DPI. All functional coverage is implemented as **counter-based collectors**: explicit integer counters incremented when a sampled condition matches a bin, with a `report_coverage()` task in `runctl_mgmt_cov` that prints hit counts per bin and prints a `UNCOVERED:` line for every bin with count 0. Randomization uses the LCG-based PRNG in `mutrig_common_pkg`. Cross bins are computed by tuple lookup (multi-dimensional integer arrays), not `cross` constructs.
+The current standalone harness intentionally keeps **counter-based collectors**
+instead of native `covergroup` constructs so coverage reports remain stable and
+portable across toolchains. On this host the supported simulator is now
+QuestaOne 2026 with native UVM DPI enabled, but `runctl_mgmt_cov` still records
+coverage through explicit counters and `report_coverage()`. Randomization
+remains LCG-based in `mutrig_common_pkg` for deterministic replay, and cross
+bins are computed by tuple lookup rather than native `cross` constructs.
 
 ### 5.1 CSR coverage (collector: `cov_csr`)
 
@@ -184,8 +199,8 @@ Implementation constraint: the simulator is **Questa FSE Starter Edition** (`/ho
 
 | Bin group | Bins | Goal |
 |-----------|------|------|
-| `cmd_byte_synclink` | 10 bins, one per defined byte (0x10–0x14, 0x30–0x33, 0x40) | each ≥1 |
-| `cmd_byte_local`    | 10 bins (same set, delivered via LOCAL_CMD) | each ≥1 |
+| `cmd_byte_synclink` | 15 bins, one per defined byte (0x10–0x14, 0x20, 0x21, 0x24–0x26, 0x30–0x33, 0x40) | each ≥1 |
+| `cmd_byte_local`    | 15 bins (same set, delivered via LOCAL_CMD) | each ≥1 |
 | `cmd_byte_unknown`  | 1 bin: any byte not in the defined set | ≥1 |
 | `cmd_payload_runprep` | 3 bins: run_number ∈ {0, mid, 0xFFFFFFFF} | each ≥1 |
 | `cmd_payload_reset`   | 3 bins: assert_mask ∈ {0, mid, 0xFFFF} | each ≥1 |
@@ -197,13 +212,13 @@ Implementation constraint: the simulator is **Questa FSE Starter Edition** (`/ho
 
 | ID | Axes | Cells | Goal |
 |----|------|-------|------|
-| C1 | synclink cmd class (10) × upload backpressure (3: continuous-ready, toggled, held-low) | 30 | ≥1 each |
+| C1 | synclink cmd class (15) × upload backpressure (3: continuous-ready, toggled, held-low) | 45 | ≥1 each |
 | C2 | runctl ready latency (4: 0, 1, mid, max) × recv_state when stalled in POSTING (1) | 4 | ≥1 each |
 | C3 | CSR activity class (3: read, write, idle) × recv_state (4: IDLE, RX_PAYLOAD, POSTING, LOG_WR) | 12 | ≥1 each |
 | C4 | log FIFO occupancy bin (5: empty, low<25%, mid, high>75%, near-full) × LOG_POP burst length (3: 1, 4, 16) | 15 | ≥1 each |
 | C5 | rst_mask combo (4) × reset cmd class (2: CMD_RESET, CMD_STOP_RESET) | 8 | ≥1 each |
 | C6 | lvdspll_reset × mm_reset ordering (3: lvds-first, mm-first, simultaneous) | 3 | ≥1 each |
-| C7 | local_cmd submit phase (3: while recv idle, while recv RX_PAYLOAD, while recv POSTING) × command class (10) | 30 | ≥1 each |
+| C7 | local_cmd submit phase (3: while recv idle, while recv RX_PAYLOAD, while recv POSTING) × command class (15) | 45 | ≥1 each |
 
 Total cross cells: 102. Total CSR + command bins: 27 + 38 = 65. Coverage closure target: 100% of listed bins (167 in total).
 
@@ -259,9 +274,9 @@ The tables below hold only the bring-up spine (B001–B022, E001–E020, X001–
 | E004_log_fifo_near_full | Submit commands until LOG_STATUS.rdusedw approaches max | rdfull asserts; further commands continue but oldest log entries hold (RTL behavior verified) | planned |
 | E005_log_pop_burst | Pop 64 sub-words back-to-back | All sub-words match scoreboard sequence | planned |
 | E006_meta_invalid_page | Write META selector with reserved bits set | Lower 2 bits select page; upper bits ignored | planned |
-| E007_control_mask_dp_only | Set rst_mask_dp=1, send CMD_RESET | `dp_hard_reset` suppressed, `ct_hard_reset` asserted, `ext_hard_reset` asserted | planned |
-| E008_control_mask_ct_only | Set rst_mask_ct=1, send CMD_RESET | `ct_hard_reset` suppressed, `dp_hard_reset` asserted, `ext_hard_reset` asserted | planned |
-| E009_control_mask_both | Set both masks, send CMD_RESET | Local `dp_hard_reset` / `ct_hard_reset` stay deasserted, `ext_hard_reset` still asserts; RESET_MASK CSR still updated | planned |
+| E007_control_mask_dp_only | Set rst_mask_dp=1, send CMD_RESET | `dp_hard_reset` suppressed, `ct_hard_reset` asserted, `ext_hard_reset` pulses | planned |
+| E008_control_mask_ct_only | Set rst_mask_ct=1, send CMD_RESET | `ct_hard_reset` suppressed, `dp_hard_reset` asserted, `ext_hard_reset` pulses | planned |
+| E009_control_mask_both | Set both masks, send CMD_RESET | Local `dp_hard_reset` / `ct_hard_reset` stay deasserted, `ext_hard_reset` still pulses; RESET_MASK CSR still updated | planned |
 | E010_gts_wrap | Run 48-bit gts to upper boundary, send command | recv_ts/exec_ts capture wrap correctly across word boundary | planned |
 | E011_address_no_fanout | Send 0x40 ADDRESS, monitor runctl | runctl source has zero transactions during address handling | planned |
 | E012_runctl_ready_toggle_1cycle | Send long sequence with runctl ready toggled every cycle | All commands accepted, no drops | planned |
@@ -274,6 +289,14 @@ The tables below hold only the bring-up spine (B001–B022, E001–E020, X001–
 | E019_status_state_encoding | Stall recv FSM in RX_PAYLOAD by withholding next byte; read STATUS | recv_state_enc reflects RX_PAYLOAD encoding | planned |
 | E020_runctl_ready_max_latency | Apply runctl ready latency = max_supported | All commands eventually drain, no FSM hang | planned |
 
+Implementation note (`2026-04-22`):
+the current tree also carries a direct standalone test
+`runctl_mgmt_host_local_cmd_backpressure_test`. It is the canonical reproducer
+for `BUG-001-R` and covers the held `LOCAL_CMD` / busy-clear / waitrequest
+subcase closest to `E097_local_cmd_busy_timing` and
+`E098_csr_waitrequest_release`. It does not replace the still-planned explicit
+two-write rejection case `E013_local_cmd_busy_block`.
+
 ### 6.3 DV_CROSS (X-series)
 
 | ID | Stimulus | Expected | Status |
@@ -281,7 +304,7 @@ The tables below hold only the bring-up spine (B001–B022, E001–E020, X001–
 | X001_csr_traffic_during_cmd | Random CSR reads to STATUS/RECV_TS/LAST_CMD while sending mixed commands | All commands accepted; CSR readbacks self-consistent | planned |
 | X002_csr_writes_during_cmd | Random CSR writes to SCRATCH and CONTROL while sending commands | No interference; commands all delivered | planned |
 | X003_local_cmd_vs_synclink | Issue LOCAL_CMD while synclink command in flight | Both commands eventually serialize through recv FSM in defined order | planned |
-| X004_mask_combo_sweep | Iterate 4 mask combos × CMD_RESET / CMD_STOP_RESET pairs | Local `dp/ct` outputs match the mask truth table for all 8 combinations; exported `ext_hard_reset` always tracks RESET/STOP_RESET independent of mask | planned |
+| X004_mask_combo_sweep | Iterate 4 mask combos × CMD_RESET / CMD_STOP_RESET pairs | Local `dp/ct` outputs match the mask truth table for all 8 combinations; exported `ext_hard_reset` pulses on RESET and can be cancelled by STOP_RESET independent of mask | planned |
 | X005_log_fill_drain_mix | Random fill/drain sequence touching empty/low/mid/high/near-full bins | Cov bin C4 fully covered; scoreboard agrees on all popped sub-words | planned |
 | X006_upload_backpressure_mix | All 10 command classes × 3 upload backpressure modes | Cov bin C1 (30 cells) fully covered; ack packets correct | planned |
 | X007_runctl_latency_sweep | Sweep runctl ready latency ∈ {0,1,mid,max} during POSTING | Cov bin C2 fully covered; FSM never deadlocks | planned |
@@ -365,6 +388,13 @@ These lock down behaviors the bucket files and scoreboard assume. Verified again
   - `runctl_mgmt_scoreboard` — reference model for CSR shadow, log FIFO, upload acks, runctl fanout
   - `runctl_mgmt_cov` — counter-based coverage collector implementing section 5
   - `sva_synclink`, `sva_runctl`, `sva_upload`, `sva_csr`, `sva_cdc` — SVA bind modules
-- **Simulator:** Questa FSE 2022.4 (`/data1/intelFPGA_pro/23.1/questa_fse/`). Constraints: no `rand`/`constraint`, no `covergroup`, no DPI. Compile flags per `/home/yifeng/CLAUDE.md`. PRNG via `mutrig_common_pkg::lcg_next`.
+- **Simulator:** QuestaOne 2026 (`/data1/questaone_sim/questasim`). The active
+  standalone rerun path uses native UVM 1.2 with DPI enabled. Historical FSE
+  Starter constraints in older notes are no longer the active runtime model on
+  this host.
+- **Current migration evidence (2026-04-21):** `make -C tb run_uvm_smoke`
+  passes on the supported QuestaOne path. Treat broader bucket-pass statements
+  elsewhere in this planning document as historical intent unless they are
+  backed by refreshed generated reports in the live tree.
 - **Style:** `doc/STYLE.md` in this repo for test ID format and RTL coding rules. Cross-references: `histogram_statistics/tb/DV_PLAN.md`, `slow-control_hub/tb/DV_PLAN.md`.
 - **Legacy reference:** `legacy/runctl_mgmt_host_v24.vhd` for synclink/runctl/upload datapath semantics (CSR block is fully respecified in section 3 of this document).

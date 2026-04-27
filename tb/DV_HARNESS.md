@@ -1,10 +1,14 @@
 # DV Harness: runctl_mgmt_host UVM Environment
 
 **Parent:** [DV_PLAN.md](DV_PLAN.md)
-**DUT:** `runctl_mgmt_host` (`rtl/runctl_mgmt_host.sv`, planned)
+**DUT:** `runctl_mgmt_host` (`rtl/runctl_mgmt_host.sv`)
 **Author:** Yifeng Wang (yifenwan@phys.ethz.ch)
 **Date:** 2026-04-13
-**Status:** Planning. No harness files exist yet. Every artifact below is scheduled for implementation.
+**Status:** Implemented baseline harness exists under `tb/sim/` and `tb/uvm/`.
+This document still carries planning structure from the original bring-up, but
+the active simulator/runtime note and the checked-in harness paths below are
+current. Migration rerun evidence on 2026-04-21: `make -C tb run_uvm_smoke`
+passes on QuestaOne 2026.
 
 This document specifies the UVM environment that realizes `DV_PLAN.md`. The plan's bucket names (B / E / X / R), CSR map (sections 3.*), interface list (section 2), coverage bins (section 5), and test catalog (section 6) are the source of truth and are not restated here except as cross-references.
 
@@ -12,7 +16,12 @@ This document specifies the UVM environment that realizes `DV_PLAN.md`. The plan
 
 ## 1. Overview
 
-The harness delivers a single-DUT UVM 1.2 environment that exercises `runctl_mgmt_host` in standalone mode, under the Questa FSE Starter Edition constraints called out in `/home/yifeng/CLAUDE.md`: no `rand` / `constraint`, no `covergroup`, no DPI, UVM 1.2 only. All stimulus randomness is drawn from `mutrig_common_pkg::lcg_next`; all functional coverage is counter-based.
+The harness delivers a single-DUT UVM 1.2 environment that exercises
+`runctl_mgmt_host` in standalone mode on the supported QuestaOne 2026 runtime.
+Historical FSE Starter limitations are no longer the active simulator model for
+this host. The checked-in harness still uses deterministic stimulus patterns
+and lightweight coverage/accounting, but native DPI is available and used by
+the current rerun path.
 
 ```
 +---------------------------------------------------------------------+
@@ -63,7 +72,9 @@ The env is instantiated inside `tb_top`. `tb_top` owns the two clock generators,
 
 ## 2. Directory Layout
 
-All paths are relative to the IP root (`run-control_mgmt/`). Every file is planned.
+All paths are relative to the IP root (`run-control_mgmt/`). Most files listed
+below now exist in the live tree; keep this section as a structure map rather
+than as an implementation-gap claim.
 
 ```
 tb/
@@ -324,7 +335,7 @@ The top-level `runctl_mgmt_scoreboard` is a `uvm_scoreboard` that owns five sub-
 | runctl fanout predictor | `sb_runctl_predictor.sv`      | synclink_txn (accepted), csr_txn (LOCAL_CMD writes), runctl_sink_txn | for every accepted command that should fan out (plan section 3.7), push the expected 9-bit word onto an expected queue; pop on observed runctl beat. Mismatch or stale queue at end-of-test = `UVM_ERROR`. |
 | upload ack predictor    | `sb_upload_predictor.sv`      | synclink_txn, csr_txn, upload_sink_txn | verifies RUN_PREPARE emits a single ack packet with `datak` bit set for the K30.7 header and run-number tail; END_RUN emits a single K29.7 ack. Any other command class must produce zero upload packets. |
 | log sentence predictor  | `sb_log_sentence_predictor.sv`| synclink_txn, csr_txn (CONTROL, LOG_POP) | predicts the 4-word log sentence per plan section 3.6 from observed recv/host events, stores them in a FIFO, and checks each `LOG_POP` read against the head of the predicted FIFO. Handles `CONTROL.soft_reset` and `CONTROL.log_flush` semantics. |
-| hard_reset model        | `sb_hard_reset_model.sv`      | synclink_txn, csr_txn (CONTROL.rst_mask_*), reset_if | on CMD_RESET / CMD_STOP_RESET, predicts local `dp_hard_reset` / `ct_hard_reset` polarity after the CONTROL mask is applied and predicts `ext_hard_reset` as an always-on exported subsystem reset; compares against the monitored reset outputs. |
+| hard_reset model        | `sb_hard_reset_model.sv`      | synclink_txn, csr_txn (CONTROL.rst_mask_*), reset_if | on CMD_RESET / CMD_STOP_RESET, predicts local `dp_hard_reset` / `ct_hard_reset` polarity after the CONTROL mask is applied and predicts `ext_hard_reset` as a bounded exported subsystem reset pulse; compares against the monitored reset outputs. |
 
 The scoreboard subscribes to analysis ports via `uvm_analysis_imp_decl` helpers so that each monitor feeds multiple sub-models without cloning transactions.
 
@@ -423,6 +434,16 @@ Reset-while-running guard: every property is qualified with `disable iff (lvdspl
 5. Exposes a `run_phase` that releases resets according to `env_cfg.reset_order`, then kicks off the test's sequence library.
 
 Derived tests each pick a sequence library from `tb/uvm/sequences/`. One test per bucket; bucket granularity is deliberate so that regression can select `+UVM_TESTNAME=runctl_mgmt_host_basic_test +SEQ=basic_uid_seq` to run a single case.
+
+Current repository state note:
+the bucket-library split below is still the authored target architecture, but
+the implemented direct standalone tests in this tree today are
+`runctl_mgmt_host_smoke_test`,
+`runctl_mgmt_host_synclink_cmd_matrix_test`, and
+`runctl_mgmt_host_local_cmd_backpressure_test`. The last one is the canonical
+direct reproducer for `BUG-001-R` and covers the held `LOCAL_CMD`
+busy-clear / waitrequest-release subcase closest to plan items `E097` and
+`E098`.
 
 | Test class | DV_PLAN bucket | Sequence library driver |
 |------------|----------------|-------------------------|

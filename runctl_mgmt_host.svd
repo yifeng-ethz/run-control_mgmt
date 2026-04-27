@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<device schemaVersion="1.3" xmlns:xs="http://www.w3.org/2001/XMLSchema-instance" xs:noNamespaceSchemaLocation="CMSIS-SVD.xsd">
+  <vendor>Mu3e</vendor>
+  <vendorID>MU3E</vendorID>
+  <name>MU3E_RUNCTL_MGMT_HOST</name>
+  <series>MU3E_FPGA_IP</series>
+  <version>26.2.6.0425</version>
+  <description>CMSIS-SVD description of the Run-Control Management Host CSR window. BaseAddress is 0 because this file describes the relative CSR aperture of the IP; system integration supplies the live slave base address.</description>
+  <addressUnitBits>8</addressUnitBits>
+  <width>32</width>
+  <size>32</size>
+  <access>read-write</access>
+  <resetValue>0x00000000</resetValue>
+  <resetMask>0xFFFFFFFF</resetMask>
+  <peripherals>
+    <peripheral>
+      <name>RUNCTL_MGMT_HOST_CSR</name>
+      <description>Relative 21-word CSR aperture for the Run-Control Management Host. The window includes the Mu3e identity header, live status, counters, timestamp snapshots, and the LOCAL_CMD injection port.</description>
+      <groupName>MU3E_RUNCTL_MGMT_HOST</groupName>
+      <baseAddress>0x0</baseAddress>
+      <addressBlock>
+        <offset>0x0</offset>
+        <size>0x54</size>
+        <usage>registers</usage>
+      </addressBlock>
+      <registers>
+        <register>
+          <name>UID</name>
+          <description>Software-visible IP identifier. Default ASCII "RCMH" (0x52434D48).</description>
+          <addressOffset>0x00</addressOffset>
+          <access>read-only</access>
+          <resetValue>0x52434D48</resetValue>
+        </register>
+        <register>
+          <name>META</name>
+          <description>Read-multiplexed metadata word. Write page_sel[1:0] before reading back: 0=VERSION, 1=DATE, 2=GIT, 3=INSTANCE_ID.</description>
+          <addressOffset>0x04</addressOffset>
+          <access>read-write</access>
+          <fields>
+            <field>
+              <name>page_sel</name>
+              <description>Selects the META read page.</description>
+              <bitOffset>0</bitOffset>
+              <bitWidth>2</bitWidth>
+              <access>read-write</access>
+            </field>
+            <field>
+              <name>reserved</name>
+              <description>Reserved, read as zero.</description>
+              <bitOffset>2</bitOffset>
+              <bitWidth>30</bitWidth>
+              <access>read-only</access>
+            </field>
+          </fields>
+        </register>
+        <register>
+          <name>CONTROL</name>
+          <description>CSR control register for reset masking, local-log flushing, and software control-path housekeeping.</description>
+          <addressOffset>0x08</addressOffset>
+          <access>read-write</access>
+        </register>
+        <register>
+          <name>STATUS</name>
+          <description>Live run-control receiver, host, upload, and reset state summary.</description>
+          <addressOffset>0x0C</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>LAST_CMD</name>
+          <description>Last accepted command byte plus decoded payload shadow fields.</description>
+          <addressOffset>0x10</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>SCRATCH</name>
+          <description>General-purpose scratch register for software bring-up.</description>
+          <addressOffset>0x14</addressOffset>
+          <access>read-write</access>
+        </register>
+        <register>
+          <name>RUN_NUMBER</name>
+          <description>Shadow of the most recently received RUN_PREPARE run number. Synclink payload bytes are decoded in SWB reset-link order: least-significant byte first.</description>
+          <addressOffset>0x18</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>RESET_MASK</name>
+          <description>Latched reset assert/release mask shadow.</description>
+          <addressOffset>0x1C</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>FPGA_ADDRESS</name>
+          <description>Latched per-FEB address from CMD_ADDRESS or LOCAL_CMD injection.</description>
+          <addressOffset>0x20</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>RECV_TS_L</name>
+          <description>Low 32 bits of the receive timestamp snapshot.</description>
+          <addressOffset>0x24</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>RECV_TS_H</name>
+          <description>High 16 bits of the receive timestamp snapshot.</description>
+          <addressOffset>0x28</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>EXEC_TS_L</name>
+          <description>Low 32 bits of the execute timestamp snapshot.</description>
+          <addressOffset>0x2C</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>EXEC_TS_H</name>
+          <description>High 16 bits of the execute timestamp snapshot.</description>
+          <addressOffset>0x30</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>GTS_L</name>
+          <description>Low 32 bits of the free-running 48-bit global timestamp snapshot.</description>
+          <addressOffset>0x34</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>GTS_H</name>
+          <description>High 16 bits of the free-running 48-bit global timestamp snapshot.</description>
+          <addressOffset>0x38</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>RX_CMD_COUNT</name>
+          <description>Saturating count of accepted run-control commands.</description>
+          <addressOffset>0x3C</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>RX_ERR_COUNT</name>
+          <description>Saturating count of receive-side protocol or decode errors.</description>
+          <addressOffset>0x40</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>LOG_STATUS</name>
+          <description>Status summary for the internal command log FIFO.</description>
+          <addressOffset>0x44</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>LOG_POP</name>
+          <description>Read port for the packed 128-bit log FIFO, exposed one 32-bit word at a time.</description>
+          <addressOffset>0x48</addressOffset>
+          <access>read-only</access>
+        </register>
+        <register>
+          <name>LOCAL_CMD</name>
+          <description>Software injection port for a local run-control command word.</description>
+          <addressOffset>0x4C</addressOffset>
+          <access>read-write</access>
+        </register>
+        <register>
+          <name>ACK_SYMBOLS</name>
+          <description>Configured upload acknowledgement symbols for RUN_PREPARE and END_RUN.</description>
+          <addressOffset>0x50</addressOffset>
+          <access>read-only</access>
+        </register>
+      </registers>
+    </peripheral>
+  </peripherals>
+</device>

@@ -7,13 +7,8 @@ quartus_dir="${script_dir}/quartus_proj"
 project_name="runctl_mgmt_host_lint"
 revision="runctl_mgmt_host_lint"
 
-QUESTA_HOME="${QUESTA_HOME:-/data1/intelFPGA_pro/23.1/questa_fse}"
-INTEL_LIBS="${QUESTA_HOME}/intel/vhdl"
-VLIB="${QUESTA_HOME}/bin/vlib"
-VMAP="${QUESTA_HOME}/bin/vmap"
-VCOM="${QUESTA_HOME}/bin/vcom"
-VLOG="${QUESTA_HOME}/bin/vlog"
-VOPT="${QUESTA_HOME}/bin/vopt"
+source "${script_dir}/../../scripts/questa_one_env.sh"
+INTEL_LIBS="${QUESTA_INTEL_VHDL_LIBS}"
 
 rm -rf "${work_dir}"
 rm -f "${script_dir}/layer1_source.log" "${script_dir}/layer2_elab.log" \
@@ -24,7 +19,8 @@ rm -f "${script_dir}/layer1_source.log" "${script_dir}/layer2_elab.log" \
 mkdir -p "${work_dir}"
 pushd "${work_dir}" >/dev/null
 "${VLIB}" work >/dev/null
-"${VMAP}" -c >/dev/null
+cp "${QSIM_INI}" modelsim.ini
+chmod u+w modelsim.ini
 "${VMAP}" -modelsimini modelsim.ini work work >/dev/null
 "${VMAP}" -modelsimini modelsim.ini altera_mf "${INTEL_LIBS}/altera_mf" >/dev/null
 {

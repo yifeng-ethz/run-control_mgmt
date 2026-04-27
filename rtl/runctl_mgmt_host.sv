@@ -15,9 +15,29 @@
 // mailbox is replaced by a word-addressed CSR block with an identity header.
 //
 // Author  : Yifeng Wang (yifenwan@phys.ethz.ch)
-// Version : 26.2.0
-// Date    : 20260416
-// Change  : 26.2.0 — align synclink CMD_RESET / CMD_STOP_RESET with the Mu3e
+// Version : 26.2.6
+// Date    : 20260425
+// Change  : 26.2.6 — make ext_hard_reset a bounded pulse so the exported
+//                     subsystem reset cannot hold the LVDS/upload response
+//                     path in reset until STOP_RESET.
+//           26.2.5 — accept reset-protocol link-test and sync-test opcodes
+//                     and fan them out as LINK_TEST/SYNC_TEST/IDLE states.
+//           26.2.4 — decode synclink RUN_PREPARE payload bytes in the
+//                     least-significant-byte-first order emitted by the SWB
+//                     reset-link transmitter.
+//           26.2.3 — process CMD_RESET / CMD_STOP_RESET as hard-reset conduit
+//                     commands without run-control fanout backpressure. This
+//                     avoids a reset-release deadlock when downstream runctl
+//                     slaves are themselves held in the reset tree that the
+//                     command is trying to release.
+//           26.2.2 — initialize exported hard-reset conduits low at time zero
+//                     so subsystem reset merges do not start from X before the
+//                     lvdspll_reset domain becomes active in simulation.
+//           26.2.1 — require a trained synclink K-idle/comma before accepting
+//                     a command byte from RECV_IDLE. This blocks false startup
+//                     commands during clean boot before the link has shown a
+//                     stable post-train control symbol.
+//           26.2.0 — align synclink CMD_RESET / CMD_STOP_RESET with the Mu3e
 //                     SpecBook section 4.6.2 single-byte reset-distribution
 //                     contract. payload_len_lut returns 0 for these opcodes
 //                     (instead of 2); the recv FSM now transitions directly
@@ -41,11 +61,12 @@ module runctl_mgmt_host #(
     parameter logic [31:0] IP_UID         = 32'h5243_4D48, // ASCII "RCMH"
     parameter logic [7:0]  VERSION_MAJOR  = 8'd26,
     parameter logic [7:0]  VERSION_MINOR  = 8'd2,
-    parameter logic [3:0]  VERSION_PATCH  = 4'd0,
-    parameter logic [11:0] BUILD          = 12'h416,     // MMDD = 0416
-    parameter logic [31:0] VERSION_DATE   = 32'h2026_0416,
+    parameter logic [3:0]  VERSION_PATCH  = 4'd6,
+    parameter logic [11:0] BUILD          = 12'h425,     // MMDD = 0425
+    parameter logic [31:0] VERSION_DATE   = 32'h2026_0425,
     parameter logic [31:0] VERSION_GIT    = 32'h0,
-    parameter logic [31:0] INSTANCE_ID    = 32'h0
+    parameter logic [31:0] INSTANCE_ID    = 32'h0,
+    parameter logic [15:0] EXT_HARD_RESET_PULSE_CYCLES = 16'd16384
 )(
     // <synclink> AVST sink (lvdspll_clk) — passive byte stream
     input  logic [8:0]  asi_synclink_data,   // {k, data[7:0]}
@@ -91,6 +112,11 @@ module runctl_mgmt_host #(
     localparam logic [7:0] CMD_START_RUN   = 8'h12;
     localparam logic [7:0] CMD_END_RUN     = 8'h13;
     localparam logic [7:0] CMD_ABORT_RUN   = 8'h14;
+    localparam logic [7:0] CMD_START_LINK_TEST = 8'h20;
+    localparam logic [7:0] CMD_STOP_LINK_TEST  = 8'h21;
+    localparam logic [7:0] CMD_START_SYNC_TEST = 8'h24;
+    localparam logic [7:0] CMD_STOP_SYNC_TEST  = 8'h25;
+    localparam logic [7:0] CMD_TEST_SYNC       = 8'h26;
     localparam logic [7:0] CMD_RESET       = 8'h30;
     localparam logic [7:0] CMD_STOP_RESET  = 8'h31;
     localparam logic [7:0] CMD_ENABLE      = 8'h32;
@@ -137,6 +163,8 @@ module runctl_mgmt_host #(
 
     localparam logic [7:0] UPL_IDLE        = 8'h00;
     localparam logic [7:0] UPL_SEND        = 8'h01;
+
+    localparam logic [8:0] SYNCLINK_IDLE_COMMA = 9'h1BC;
 
     // ============================================================
     // Forward signal declarations
@@ -315,6 +343,11 @@ module runctl_mgmt_host #(
             CMD_START_RUN,
             CMD_END_RUN,
             CMD_ABORT_RUN,
+            CMD_START_LINK_TEST,
+            CMD_STOP_LINK_TEST,
+            CMD_START_SYNC_TEST,
+            CMD_STOP_SYNC_TEST,
+            CMD_TEST_SYNC,
             CMD_ENABLE,
             CMD_DISABLE:     payload_len_lut = 4'd0;
             default:         payload_len_lut = 4'd15; // 0xF = unknown marker
@@ -324,8 +357,10 @@ module runctl_mgmt_host #(
     function automatic logic cmd_is_known (input logic [7:0] cmd);
         case (cmd)
             CMD_RUN_PREPARE, CMD_RUN_SYNC, CMD_START_RUN, CMD_END_RUN,
-            CMD_ABORT_RUN, CMD_RESET, CMD_STOP_RESET, CMD_ENABLE,
-            CMD_DISABLE, CMD_ADDRESS: cmd_is_known = 1'b1;
+            CMD_ABORT_RUN, CMD_START_LINK_TEST, CMD_STOP_LINK_TEST,
+            CMD_START_SYNC_TEST, CMD_STOP_SYNC_TEST, CMD_TEST_SYNC,
+            CMD_RESET, CMD_STOP_RESET, CMD_ENABLE, CMD_DISABLE,
+            CMD_ADDRESS: cmd_is_known = 1'b1;
             default:                  cmd_is_known = 1'b0;
         endcase
     endfunction
@@ -333,17 +368,61 @@ module runctl_mgmt_host #(
     // Map command byte → runctl AVST 9-bit one-hot (fanout code)
     function automatic logic [8:0] dec_runcmd (input logic [7:0] cmd);
         case (cmd)
-            CMD_RUN_PREPARE: dec_runcmd = 9'b000000010;
-            CMD_RUN_SYNC:    dec_runcmd = 9'b000000100;
-            CMD_START_RUN:   dec_runcmd = 9'b000001000;
-            CMD_END_RUN:     dec_runcmd = 9'b000010000;
-            CMD_ABORT_RUN:   dec_runcmd = 9'b000000001;
-            CMD_RESET:       dec_runcmd = 9'b010000000;
-            CMD_STOP_RESET:  dec_runcmd = 9'b000000001;
-            CMD_ENABLE:      dec_runcmd = 9'b000000001;
-            CMD_DISABLE:     dec_runcmd = 9'b100000000;
-            default:         dec_runcmd = 9'b000000001;
+            CMD_RUN_PREPARE:     dec_runcmd = 9'b000000010;
+            CMD_RUN_SYNC:        dec_runcmd = 9'b000000100;
+            CMD_START_RUN:       dec_runcmd = 9'b000001000;
+            CMD_END_RUN:         dec_runcmd = 9'b000010000;
+            CMD_ABORT_RUN:       dec_runcmd = 9'b000000001;
+            CMD_START_LINK_TEST: dec_runcmd = 9'b000100000;
+            CMD_STOP_LINK_TEST:  dec_runcmd = 9'b000000001;
+            CMD_START_SYNC_TEST: dec_runcmd = 9'b001000000;
+            CMD_TEST_SYNC:       dec_runcmd = 9'b001000000;
+            CMD_STOP_SYNC_TEST:  dec_runcmd = 9'b000000001;
+            CMD_RESET:           dec_runcmd = 9'b010000000;
+            CMD_STOP_RESET:      dec_runcmd = 9'b000000001;
+            CMD_ENABLE:          dec_runcmd = 9'b000000001;
+            CMD_DISABLE:         dec_runcmd = 9'b100000000;
+            default:             dec_runcmd = 9'b000000001;
         endcase
+    endfunction
+
+    function automatic logic cmd_requires_fanout (input logic [7:0] cmd);
+        case (cmd)
+            CMD_RUN_PREPARE,
+            CMD_RUN_SYNC,
+            CMD_START_RUN,
+            CMD_END_RUN,
+            CMD_ABORT_RUN,
+            CMD_START_LINK_TEST,
+            CMD_STOP_LINK_TEST,
+            CMD_START_SYNC_TEST,
+            CMD_STOP_SYNC_TEST,
+            CMD_TEST_SYNC,
+            CMD_ENABLE,
+            CMD_DISABLE:
+                cmd_requires_fanout = 1'b1;
+            default:
+                cmd_requires_fanout = 1'b0;
+        endcase
+    endfunction
+
+    function automatic logic [31:0] payload32_set_byte_le (
+        input logic [31:0] payload,
+        input logic [3:0]  byte_index,
+        input logic [7:0]  byte_value
+    );
+        logic [31:0] payload_next;
+        begin
+            payload_next = payload;
+            unique case (byte_index)
+                4'd0: payload_next[7:0]   = byte_value;
+                4'd1: payload_next[15:8]  = byte_value;
+                4'd2: payload_next[23:16] = byte_value;
+                4'd3: payload_next[31:24] = byte_value;
+                default: ;
+            endcase
+            return payload_next;
+        end
     endfunction
 
     // ============================================================
@@ -359,6 +438,7 @@ module runctl_mgmt_host #(
     logic [31:0] recv_payload32;
     logic [3:0]  recv_payload_len;
     logic [3:0]  recv_payload_cnt;
+    logic        synclink_idle_armed;
 
     // recv→host start/done pipe
     logic        pipe_r2h_start, pipe_r2h_done;
@@ -391,6 +471,7 @@ module runctl_mgmt_host #(
             recv_payload32          <= 32'd0;
             recv_payload_len        <= 4'd0;
             recv_payload_cnt        <= 4'd0;
+            synclink_idle_armed     <= 1'b0;
             pipe_r2h_start          <= 1'b0;
             snap_update_lvds        <= 1'b0;
             local_cmd_consume_lvds  <= 1'b0;
@@ -415,6 +496,7 @@ module runctl_mgmt_host #(
                     // Priority 1: local_cmd injection (complete word in one shot)
                     if (local_cmd_pending_lvds) begin
                         local_cmd_consume_lvds <= 1'b1;
+                        synclink_idle_armed    <= 1'b0;
                         recv_run_command       <= local_cmd_word_lvds[7:0];
                         recv_timestamp         <= gts_counter;
                         recv_payload_len       <= payload_len_lut(local_cmd_word_lvds[7:0]);
@@ -445,11 +527,19 @@ module runctl_mgmt_host #(
                             recv_state <= RECV_CLEANUP;
                     end
                     // Priority 2: synclink byte, link trained
+                    else if (asi_synclink_error[2] == 1'b1) begin
+                        synclink_idle_armed <= 1'b0;
+                    end
                     else if (asi_synclink_error[2] == 1'b0) begin
                         if (asi_synclink_error[1:0] != 2'b00) begin
                             recv_state  <= RECV_LOG_ERROR;
                             ev_rx_error <= 1'b1;
-                        end else if (asi_synclink_data[8] == 1'b0) begin
+                            synclink_idle_armed <= 1'b0;
+                        end else if (asi_synclink_data[8] == 1'b1) begin
+                            if (asi_synclink_data == SYNCLINK_IDLE_COMMA)
+                                synclink_idle_armed <= 1'b1;
+                        end else if (synclink_idle_armed) begin
+                            synclink_idle_armed    <= 1'b0;
                             recv_run_command        <= asi_synclink_data[7:0];
                             recv_timestamp          <= gts_counter;
                             recv_payload_len        <= payload_len_lut(asi_synclink_data[7:0]);
@@ -477,20 +567,29 @@ module runctl_mgmt_host #(
 
                 RECV_RX_PAYLOAD: begin
                     if (asi_synclink_error[2]) begin
+                        synclink_idle_armed <= 1'b0;
                         recv_state  <= RECV_LOG_ERROR;
                         ev_rx_error <= 1'b1;
                     end else if (asi_synclink_error[1:0] != 2'b00) begin
+                        synclink_idle_armed <= 1'b0;
                         recv_state  <= RECV_LOG_ERROR;
                         ev_rx_error <= 1'b1;
                     end else if (asi_synclink_data[8] == 1'b0) begin
-                        // Shift incoming byte into payload32 (MSB-first)
-                        recv_payload32 <= {recv_payload32[23:0], asi_synclink_data[7:0]};
+                        // SWB a10_reset_link sends RUN_PREPARE run-number
+                        // bytes least-significant first. Keep payload32 in the
+                        // resolved integer order as bytes arrive.
+                        recv_payload32 <= payload32_set_byte_le(recv_payload32,
+                                                                 recv_payload_cnt,
+                                                                 asi_synclink_data[7:0]);
                         recv_payload_cnt <= recv_payload_cnt + 4'd1;
                         if (recv_payload_cnt + 4'd1 >= recv_payload_len) begin
                             // Latch destination snapshot field
                             unique case (recv_run_command)
                                 CMD_RUN_PREPARE: begin
-                                    recv_run_number <= {recv_payload32[23:0], asi_synclink_data[7:0]};
+                                    recv_run_number <= payload32_set_byte_le(
+                                        recv_payload32,
+                                        recv_payload_cnt,
+                                        asi_synclink_data[7:0]);
                                 end
                                 CMD_RESET: begin
                                     recv_reset_assert_mask <=
@@ -593,9 +692,16 @@ module runctl_mgmt_host #(
             case (host_state)
                 HOST_IDLE_ST: begin
                     if (pipe_r2h_start && !pipe_r2h_done) begin
-                        host_state       <= HOST_POSTING;
-                        aso_runctl_valid <= 1'b1;
-                        aso_runctl_data  <= dec_runcmd(recv_run_command);
+                        if (cmd_requires_fanout(recv_run_command)) begin
+                            host_state       <= HOST_POSTING;
+                            aso_runctl_valid <= 1'b1;
+                            aso_runctl_data  <= dec_runcmd(recv_run_command);
+                        end else begin
+                            aso_runctl_valid <= 1'b0;
+                            host_exec_ts     <= gts_counter;
+                            pipe_r2h_done    <= 1'b1;
+                            host_state       <= HOST_CLEANUP;
+                        end
                     end
                 end
                 HOST_POSTING: begin
@@ -675,13 +781,17 @@ module runctl_mgmt_host #(
     // ============================================================
     // Hard-reset generator (lvdspll_clk)
     // ============================================================
-    logic dp_hard_reset_q, ct_hard_reset_q, ext_hard_reset_q;
+    logic dp_hard_reset_q  = 1'b0;
+    logic ct_hard_reset_q  = 1'b0;
+    logic ext_hard_reset_q = 1'b0;
+    logic [15:0] ext_hard_reset_count = 16'd0;
 
     always_ff @(posedge lvdspll_clk) begin
         if (lvdspll_reset) begin
-            dp_hard_reset_q  <= 1'b0;
-            ct_hard_reset_q  <= 1'b0;
-            ext_hard_reset_q <= 1'b0;
+            dp_hard_reset_q         <= 1'b0;
+            ct_hard_reset_q         <= 1'b0;
+            ext_hard_reset_q        <= 1'b0;
+            ext_hard_reset_count    <= 16'd0;
         end else begin
             // Trigger on the cycle a command has been fully latched and is
             // about to be logged — gate on recv_state transitioning into
@@ -689,14 +799,25 @@ module runctl_mgmt_host #(
             // the host completes the command fan-out (pipe_r2h_done rising).
             if (pipe_r2h_done) begin
                 if (recv_run_command == CMD_RESET) begin
-                    if (!rst_mask_dp_lvds) dp_hard_reset_q <= 1'b1;
-                    if (!rst_mask_ct_lvds) ct_hard_reset_q <= 1'b1;
-                    ext_hard_reset_q <= 1'b1;
+                    if (!rst_mask_dp_lvds)
+                        dp_hard_reset_q <= 1'b1;
+                    if (!rst_mask_ct_lvds)
+                        ct_hard_reset_q <= 1'b1;
+                    ext_hard_reset_q        <= 1'b1;
+                    ext_hard_reset_count    <= EXT_HARD_RESET_PULSE_CYCLES - 16'd1;
                 end else if (recv_run_command == CMD_STOP_RESET) begin
-                    if (!rst_mask_dp_lvds) dp_hard_reset_q <= 1'b0;
-                    if (!rst_mask_ct_lvds) ct_hard_reset_q <= 1'b0;
-                    ext_hard_reset_q <= 1'b0;
+                    if (!rst_mask_dp_lvds)
+                        dp_hard_reset_q <= 1'b0;
+                    if (!rst_mask_ct_lvds)
+                        ct_hard_reset_q <= 1'b0;
+                    ext_hard_reset_q        <= 1'b0;
+                    ext_hard_reset_count    <= 16'd0;
                 end
+            end else if (ext_hard_reset_q) begin
+                if (ext_hard_reset_count == 16'd0)
+                    ext_hard_reset_q    <= 1'b0;
+                else
+                    ext_hard_reset_count <= ext_hard_reset_count - 16'd1;
             end
         end
     end
@@ -840,7 +961,7 @@ module runctl_mgmt_host #(
         logic [31:0] b;
         b[31] = g[31];
         for (int i = 30; i >= 0; i--) b[i] = b[i+1] ^ g[i];
-        return b;
+        gray_to_bin32 = b;
     endfunction
 
     assign rx_cmd_count_mm = gray_to_bin32(rx_cmd_gray_ff1);
@@ -911,6 +1032,8 @@ module runctl_mgmt_host #(
     logic [1:0]  meta_page;
     logic [31:0] gts_h_shadow;    // latched at GTS_L read
     logic [31:0] meta_readdata;
+    logic        local_cmd_req_hold_mm;
+    logic [31:0] local_cmd_hold_word_mm;
 
     // META page mux
     always_comb begin
@@ -935,6 +1058,8 @@ module runctl_mgmt_host #(
             soft_reset_req_mm    <= 1'b0;
             local_cmd_word_mm    <= 32'd0;
             local_cmd_req_mm     <= 1'b0;
+            local_cmd_req_hold_mm<= 1'b0;
+            local_cmd_hold_word_mm <= 32'd0;
             log_fifo_rdreq       <= 1'b0;
             gts_h_shadow         <= 32'd0;
         end else begin
@@ -942,6 +1067,11 @@ module runctl_mgmt_host #(
             avs_csr_waitrequest <= 1'b1;
             avs_csr_readdata    <= 32'd0;
             log_fifo_rdreq      <= 1'b0;
+            if (!avs_csr_write ||
+                (avs_csr_address != CSR_LOCAL_CMD) ||
+                (avs_csr_writedata != local_cmd_hold_word_mm)) begin
+                local_cmd_req_hold_mm <= 1'b0;
+            end
 
             case (csr_state)
                 CSR_IDLE: begin
@@ -971,14 +1101,18 @@ module runctl_mgmt_host #(
                                 csr_scratch <= avs_csr_writedata;
                             end
                             CSR_LOCAL_CMD: begin
-                                if (!local_cmd_busy_mm) begin
-                                    local_cmd_word_mm <= avs_csr_writedata;
-                                    local_cmd_req_mm  <= ~local_cmd_req_mm;
-                                end else begin
-                                    // Stall until CDC handshake completes.
-                                    avs_csr_waitrequest <= 1'b1;
-                                    csr_state           <= CSR_LOCAL_WAIT;
-                                    local_cmd_word_mm   <= avs_csr_writedata;
+                                if (!local_cmd_req_hold_mm) begin
+                                    local_cmd_req_hold_mm <= 1'b1;
+                                    local_cmd_hold_word_mm <= avs_csr_writedata;
+                                    if (!local_cmd_busy_mm) begin
+                                        local_cmd_word_mm <= avs_csr_writedata;
+                                        local_cmd_req_mm  <= ~local_cmd_req_mm;
+                                    end else begin
+                                        // Stall until CDC handshake completes.
+                                        avs_csr_waitrequest <= 1'b1;
+                                        csr_state           <= CSR_LOCAL_WAIT;
+                                        local_cmd_word_mm   <= avs_csr_writedata;
+                                    end
                                 end
                             end
                             default: ; // reserved/RO → accept, no side effects

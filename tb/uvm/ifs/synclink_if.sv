@@ -1,11 +1,13 @@
 `timescale 1ps/1ps
 
 interface synclink_if(input logic clk);
+  import runctl_mgmt_pkg::*;
+
   logic [8:0] data;
   logic [2:0] error;
 
   initial begin
-    data  = 9'h100;
+    data  = SYNCLINK_IDLE_COMMA;
     error = '0;
   end
 

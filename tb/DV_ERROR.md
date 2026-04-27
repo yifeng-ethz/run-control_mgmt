@@ -1,4 +1,8 @@
-# runctl_mgmt_host DV -- Error, Reset, and Recovery Cases
+# DV Error — runctl_mgmt_host
+
+**Companion docs:** `README.md`, `DV_PLAN.md`, `DV_HARNESS.md`,
+`DV_BASIC.md`, `DV_EDGE.md`, `DV_CROSS.md`, `DV_PROF.md`,
+`BUG_HISTORY.md`
 
 **Parent:** [DV_PLAN.md](DV_PLAN.md)
 **Bucket:** R (recovery / error injection)
@@ -412,7 +416,16 @@ Every case verifies (a) no hang, (b) fault detection via counter or status flag,
 
 ## 11. Expansion: RTL-locked error-injection tests (R018..R100)
 
-The cases below were authored after `rtl/runctl_mgmt_host.sv` (version 26.0.0) landed, so behaviors previously flagged "needs RTL lock" are now pinned against the source of truth. Each row is self-contained; use the same pass criteria framework as section 0.1 (no hang, detection, recovery, no leakage, counter correctness). Randomization is LCG-based in `mutrig_common_pkg` (no `rand`/`constraint` per Questa FSE Starter). The recv FSM encoding used below is the RTL's actual encoding: `RECV_IDLE=0x00`, `RECV_RX_PAYLOAD=0x01`, `RECV_LOGGING=0x02`, `RECV_LOG_ERROR=0x03`, `RECV_CLEANUP=0x04`.
+The cases below were authored after `rtl/runctl_mgmt_host.sv` (version 26.0.0)
+landed, so behaviors previously flagged "needs RTL lock" are now pinned
+against the source of truth. Each row is self-contained; use the same pass
+criteria framework as section 0.1 (no hang, detection, recovery, no leakage,
+counter correctness). Randomization remains LCG-based in
+`mutrig_common_pkg` for deterministic replay and harness portability; this is
+no longer tied to an FSE-only simulator restriction. The recv FSM encoding used
+below is the RTL's actual encoding: `RECV_IDLE=0x00`,
+`RECV_RX_PAYLOAD=0x01`, `RECV_LOGGING=0x02`, `RECV_LOG_ERROR=0x03`,
+`RECV_CLEANUP=0x04`.
 
 **Format:** `| ID | Stimulus | Expected | Status |`
 

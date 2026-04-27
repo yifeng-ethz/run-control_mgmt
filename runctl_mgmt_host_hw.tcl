@@ -2,7 +2,7 @@
 # runctl_mgmt_host_hw.tcl
 #
 # Platform Designer (Qsys) component definition for the Run-Control Management
-# Host Mu3e IP Core (SystemVerilog rewrite, version 26.2.0).
+# Host Mu3e IP Core (SystemVerilog rewrite, version 26.2.6).
 #
 # This IP receives run-control commands on <synclink> (9-bit 8b/1k byte stream
 # in the lvdspll_clk domain), decodes and fans them out on <runctl>, acks
@@ -11,7 +11,7 @@
 # 21 functional registers, and a 1024-deep x 32b log read-back port.
 #
 # Author  : Yifeng Wang (yifenwan@phys.ethz.ch)
-# Packaged: 2026-04-16
+# Packaged: 2026-04-25
 ################################################################################
 
 package require -exact qsys 16.1
@@ -22,10 +22,10 @@ package require -exact qsys 16.1
 # VERSION string format: YY.MINOR.PATCH.MMDD
 set VERSION_MAJOR_DEFAULT_CONST 26        ;# 2-digit year
 set VERSION_MINOR_DEFAULT_CONST 2         ;# feature revision
-set VERSION_PATCH_DEFAULT_CONST 0         ;# bug-fix revision
-set BUILD_DEFAULT_CONST         0416      ;# MMDD packaging date (April 16)
-set VERSION_DATE_DEFAULT_CONST  20260416  ;# YYYYMMDD
-set VERSION_GIT_DEFAULT_CONST   0xE2C402E ;# `git rev-parse --short HEAD`
+set VERSION_PATCH_DEFAULT_CONST 6         ;# bug-fix revision
+set BUILD_DEFAULT_CONST         0425      ;# MMDD packaging date (April 25)
+set VERSION_DATE_DEFAULT_CONST  20260425  ;# YYYYMMDD
+set VERSION_GIT_DEFAULT_CONST   0x379E13A ;# `git rev-parse --short HEAD`
 set INSTANCE_ID_DEFAULT_CONST   0
 set IP_UID_DEFAULT_CONST        0x52434D48 ;# ASCII "RCMH"
 
@@ -40,7 +40,7 @@ set_module_property VERSION                        $VERSION_STRING
 set_module_property DESCRIPTION                    "Run-Control Management Host Mu3e IP Core"
 set_module_property GROUP                          "Mu3e Control Plane/Modules"
 set_module_property AUTHOR                         "Yifeng Wang"
-set_module_property ICON_PATH                      ../quartus_system/logo/mu3e_logo.png
+set_module_property ICON_PATH                      ../quartus_system/misc/logo/mu3e_logo.png
 set_module_property INTERNAL                       false
 set_module_property OPAQUE_ADDRESS_MAP             true
 set_module_property INSTANTIATE_IN_SYSTEM_MODULE   true
@@ -101,6 +101,13 @@ set_parameter_property DEBUG HDL_PARAMETER true
 set_parameter_property DEBUG ALLOWED_RANGES {0 1 2}
 set_parameter_property DEBUG DESCRIPTION \
     "Debug instrumentation level. 0 = off, 1 = synthesizable, 2 = simulation-only."
+
+add_parameter EXT_HARD_RESET_PULSE_CYCLES NATURAL 16384
+set_parameter_property EXT_HARD_RESET_PULSE_CYCLES DISPLAY_NAME "External Hard Reset Pulse Cycles"
+set_parameter_property EXT_HARD_RESET_PULSE_CYCLES HDL_PARAMETER true
+set_parameter_property EXT_HARD_RESET_PULSE_CYCLES ALLOWED_RANGES 1:65535
+set_parameter_property EXT_HARD_RESET_PULSE_CYCLES DESCRIPTION \
+    "Number of lvdspll_clk cycles for the exported ext_hard_reset pulse after CMD_RESET. The local dp/ct hard resets still follow RESET/STOP_RESET state."
 
 ################################################################################
 # Parameters - identity header (Mu3e standard)
@@ -204,7 +211,7 @@ the Mu3e central run-control box.<br/><br/>
 <li>Parses 9-bit 8b/1k command bytes on <b>synclink</b> in the lvdspll_clk domain.</li>
 <li>Decodes and fans out the run-control state on <b>runctl</b> (9-bit AVST source).</li>
 <li>Generates <b>upload</b> ack packets for <tt>CMD_RUN_PREPARE</tt> (K30.7 + run number) and <tt>CMD_END_RUN</tt> (K29.7).</li>
-<li>Drives <b>dp_hard_reset</b> / <b>ct_hard_reset</b> plus exported <b>ext_hard_reset</b> on <tt>CMD_RESET</tt> / <tt>CMD_STOP_RESET</tt>. The local dp/ct conduits remain gated by the CONTROL CSR mask bits; <tt>ext_hard_reset</tt> always follows the command state.</li>
+<li>Drives <b>dp_hard_reset</b> / <b>ct_hard_reset</b> on <tt>CMD_RESET</tt> / <tt>CMD_STOP_RESET</tt> and emits a bounded <b>ext_hard_reset</b> pulse on <tt>CMD_RESET</tt>. The local dp/ct conduits remain gated by the CONTROL CSR mask bits.</li>
 <li>Exposes a 21-word CSR window on <b>csr</b> (5-bit word address, Avalon-MM slave) with identity header, live status, snapshots, saturating counters, atomic 48-bit GTS snapshot, and LOG_POP sub-word readback.</li>
 <li>Hosts a <tt>dcfifo_mixed_widths</tt> 128b x 32b dual-clock FIFO for run-command logging (256 x 128b write, 1024 x 32b read).</li>
 </ul>
@@ -217,13 +224,13 @@ add_html_text "Protocol" protocol_html {<html>
 <b>Run command protocol</b> (see Mu3e-Note-0046 &ldquo;Run Start and Reset Protocol&rdquo;).<br/><br/>
 <table border="1" cellpadding="3" width="100%">
 <tr><th>Code</th><th>Name</th><th>Payload</th><th>Effect</th></tr>
-<tr><td>0x10</td><td>RUN_PREPARE</td><td>32b run number</td><td>Fanout + upload ack K30.7 with run number in data[31:8]</td></tr>
+<tr><td>0x10</td><td>RUN_PREPARE</td><td>32b run number, least-significant byte first on synclink</td><td>Fanout + upload ack K30.7 with run number in data[31:8]</td></tr>
 <tr><td>0x11</td><td>RUN_SYNC</td><td>-</td><td>Fanout only</td></tr>
 <tr><td>0x12</td><td>START_RUN</td><td>-</td><td>Fanout only</td></tr>
 <tr><td>0x13</td><td>END_RUN</td><td>-</td><td>Fanout + upload ack K29.7</td></tr>
 <tr><td>0x14</td><td>ABORT_RUN</td><td>-</td><td>Fanout only</td></tr>
-<tr><td>0x30</td><td>RESET</td><td>16b assert mask</td><td>Assert exported ext_hard_reset and local dp/ct_hard_reset (local conduits masked by CONTROL)</td></tr>
-<tr><td>0x31</td><td>STOP_RESET</td><td>16b release mask</td><td>Deassert ext_hard_reset and local dp/ct_hard_reset (local conduits masked by CONTROL)</td></tr>
+<tr><td>0x30</td><td>RESET</td><td>16b assert mask</td><td>Pulse exported ext_hard_reset and assert local dp/ct_hard_reset (local conduits masked by CONTROL)</td></tr>
+<tr><td>0x31</td><td>STOP_RESET</td><td>16b release mask</td><td>Cancel any active ext_hard_reset pulse and release local dp/ct_hard_reset (local conduits masked by CONTROL)</td></tr>
 <tr><td>0x32</td><td>ENABLE</td><td>-</td><td>Fanout only</td></tr>
 <tr><td>0x33</td><td>DISABLE</td><td>-</td><td>Fanout only</td></tr>
 <tr><td>0x40</td><td>ADDRESS</td><td>16b FPGA addr</td><td>Latches FPGA_ADDRESS CSR; <b>no</b> runctl fanout</td></tr>
@@ -234,6 +241,7 @@ Unknown command bytes are silently dropped (no fanout, no log, no counter increm
 
 add_display_item "Protocol" RUN_START_ACK_SYMBOL PARAMETER
 add_display_item "Protocol" RUN_END_ACK_SYMBOL   PARAMETER
+add_display_item "Protocol" EXT_HARD_RESET_PULSE_CYCLES PARAMETER
 
 add_display_item "Debug" DEBUG PARAMETER
 add_html_text "Debug" debug_html {<html>
@@ -255,7 +263,7 @@ This catalog entry packages the Run-Control Management Host at revision
 <li>21-word CSR block (5-bit word address) including Mu3e identity header (UID + META page mux).</li>
 <li>Atomic 48-bit GTS snapshot, saturating RX_CMD / RX_ERR / log_drop counters.</li>
 <li>LOCAL_CMD injection path with toggle-handshake CDC and waitrequest-stall on busy.</li>
-<li>CONTROL-masked dp/ct_hard_reset outputs plus exported ext_hard_reset for other subsystems.</li>
+<li>CONTROL-masked dp/ct_hard_reset outputs plus bounded exported ext_hard_reset pulse for other subsystems.</li>
 </ul>
 <br/>
 Runtime visibility: the first CSR word (UID = 'RCMH') plus the META mux
@@ -318,7 +326,7 @@ add_html_text "Data Path" synclink_fmt_html {<html>
 <table border="1" cellpadding="3" width="100%">
 <tr><th>Bits</th><th>Field</th><th>Description</th></tr>
 <tr><td>data[8]</td><td>k-flag</td><td>1 = control symbol, 0 = data byte (command or payload)</td></tr>
-<tr><td>data[7:0]</td><td>byte</td><td>Command byte (in RECV_IDLE) or payload byte (in RECV_RX_PAYLOAD)</td></tr>
+<tr><td>data[7:0]</td><td>byte</td><td>Command byte (in RECV_IDLE) or payload byte (in RECV_RX_PAYLOAD). RUN_PREPARE run-number payload follows the SWB reset-link order: byte 0 = run_number[7:0], byte 3 = run_number[31:24].</td></tr>
 <tr><td>error[2]</td><td>loss_sync</td><td>Link not trained - recv FSM ignores data</td></tr>
 <tr><td>error[1]</td><td>parity</td><td>Parity error - drops current command, RX_ERR_COUNT++</td></tr>
 <tr><td>error[0]</td><td>decode</td><td>8b/1k decode error - drops current command, RX_ERR_COUNT++</td></tr>
@@ -360,7 +368,7 @@ See the <b>Register Map</b> tab for the full word/field breakdown.
 </html>}
 
 add_html_text "Hard Resets" hardreset_html {<html>
-<b>dp_hard_reset</b> / <b>ct_hard_reset</b> / <b>ext_hard_reset</b> &mdash; 1-bit reset-source conduits in the lvdspll_clk domain, clocked on the <tt>pipe_r2h_done</tt> rising edge when <tt>CMD_RESET</tt> or <tt>CMD_STOP_RESET</tt> is processed. <tt>ext_hard_reset</tt> is the exported subsystem reset and always follows the RESET/STOP_RESET command state so other subsystems can be returned to power-up state. The local conduits remain gated by the CONTROL CSR mask bits: <tt>rst_mask_dp=1</tt> suppresses <tt>dp_hard_reset</tt> toggles, <tt>rst_mask_ct=1</tt> suppresses <tt>ct_hard_reset</tt> toggles. Ideal for integration into the wider Quartus reset graph.
+<b>dp_hard_reset</b> / <b>ct_hard_reset</b> / <b>ext_hard_reset</b> &mdash; 1-bit reset-source conduits in the lvdspll_clk domain, clocked on the <tt>pipe_r2h_done</tt> rising edge when <tt>CMD_RESET</tt> or <tt>CMD_STOP_RESET</tt> is processed. <tt>ext_hard_reset</tt> is the exported subsystem reset pulse; it asserts for <tt>EXT_HARD_RESET_PULSE_CYCLES</tt> lvdspll_clk cycles on RESET and auto-releases so the LVDS/upload response path is not held until STOP_RESET. STOP_RESET cancels any active ext pulse. The local conduits remain gated by the CONTROL CSR mask bits and retain state until STOP_RESET: <tt>rst_mask_dp=1</tt> suppresses <tt>dp_hard_reset</tt> toggles, <tt>rst_mask_ct=1</tt> suppresses <tt>ct_hard_reset</tt> toggles. Ideal for integration into the wider Quartus reset graph.
 </html>}
 
 ################################################################################

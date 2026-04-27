@@ -1,0 +1,75 @@
+	component hit_stack_system is
+		port (
+			datapath_clock_clk                 : in  std_logic                     := 'X';             -- clk
+			datapath_reset_reset_n             : in  std_logic                     := 'X';             -- reset_n
+			feb_frame_assembly_csr_readdata    : out std_logic_vector(31 downto 0);                    -- readdata
+			feb_frame_assembly_csr_read        : in  std_logic                     := 'X';             -- read
+			feb_frame_assembly_csr_address     : in  std_logic_vector(3 downto 0)  := (others => 'X'); -- address
+			feb_frame_assembly_csr_waitrequest : out std_logic;                                        -- waitrequest
+			feb_frame_assembly_csr_write       : in  std_logic                     := 'X';             -- write
+			feb_frame_assembly_csr_writedata   : in  std_logic_vector(31 downto 0) := (others => 'X'); -- writedata
+			frame_debug_burst_valid            : out std_logic;                                        -- valid
+			frame_debug_burst_data             : out std_logic_vector(15 downto 0);                    -- data
+			frame_debug_delay8loss_valid       : out std_logic;                                        -- valid
+			frame_debug_delay8loss_data        : out std_logic_vector(15 downto 0);                    -- data
+			frame_debug_filllevel_valid        : out std_logic;                                        -- valid
+			frame_debug_filllevel_data         : out std_logic_vector(15 downto 0);                    -- data
+			frame_debug_loss8fill_valid        : out std_logic;                                        -- valid
+			frame_debug_loss8fill_data         : out std_logic_vector(15 downto 0);                    -- data
+			frame_debug_ts_data                : out std_logic_vector(15 downto 0);                    -- data
+			frame_debug_ts_valid               : out std_logic;                                        -- valid
+			frame_ts_delta_valid               : out std_logic;                                        -- valid
+			frame_ts_delta_data                : out std_logic_vector(15 downto 0);                    -- data
+			hit_type3_data                     : out std_logic_vector(35 downto 0);                    -- data
+			hit_type3_valid                    : out std_logic;                                        -- valid
+			hit_type3_ready                    : in  std_logic                     := 'X';             -- ready
+			hit_type3_startofpacket            : out std_logic;                                        -- startofpacket
+			hit_type3_endofpacket              : out std_logic;                                        -- endofpacket
+			hit_type_1_ready                   : out std_logic;                                        -- ready
+			hit_type_1_valid                   : in  std_logic                     := 'X';             -- valid
+			hit_type_1_startofpacket           : in  std_logic                     := 'X';             -- startofpacket
+			hit_type_1_endofpacket             : in  std_logic                     := 'X';             -- endofpacket
+			hit_type_1_empty                   : in  std_logic_vector(0 downto 0)  := (others => 'X'); -- empty
+			hit_type_1_channel                 : in  std_logic_vector(3 downto 0)  := (others => 'X'); -- channel
+			hit_type_1_error                   : in  std_logic_vector(0 downto 0)  := (others => 'X'); -- error
+			hit_type_1_data                    : in  std_logic_vector(38 downto 0) := (others => 'X'); -- data
+			ring_buffer_cam_0_csr_readdata     : out std_logic_vector(31 downto 0);                    -- readdata
+			ring_buffer_cam_0_csr_read         : in  std_logic                     := 'X';             -- read
+			ring_buffer_cam_0_csr_address      : in  std_logic_vector(4 downto 0)  := (others => 'X'); -- address
+			ring_buffer_cam_0_csr_waitrequest  : out std_logic;                                        -- waitrequest
+			ring_buffer_cam_0_csr_write        : in  std_logic                     := 'X';             -- write
+			ring_buffer_cam_0_csr_writedata    : in  std_logic_vector(31 downto 0) := (others => 'X'); -- writedata
+			ring_buffer_cam_0_filllevel_data   : out std_logic_vector(15 downto 0);                    -- data
+			ring_buffer_cam_0_filllevel_valid  : out std_logic;                                        -- valid
+			ring_buffer_cam_1_csr_readdata     : out std_logic_vector(31 downto 0);                    -- readdata
+			ring_buffer_cam_1_csr_read         : in  std_logic                     := 'X';             -- read
+			ring_buffer_cam_1_csr_address      : in  std_logic_vector(4 downto 0)  := (others => 'X'); -- address
+			ring_buffer_cam_1_csr_waitrequest  : out std_logic;                                        -- waitrequest
+			ring_buffer_cam_1_csr_write        : in  std_logic                     := 'X';             -- write
+			ring_buffer_cam_1_csr_writedata    : in  std_logic_vector(31 downto 0) := (others => 'X'); -- writedata
+			ring_buffer_cam_1_filllevel_data   : out std_logic_vector(15 downto 0);                    -- data
+			ring_buffer_cam_1_filllevel_valid  : out std_logic;                                        -- valid
+			ring_buffer_cam_2_csr_readdata     : out std_logic_vector(31 downto 0);                    -- readdata
+			ring_buffer_cam_2_csr_read         : in  std_logic                     := 'X';             -- read
+			ring_buffer_cam_2_csr_address      : in  std_logic_vector(4 downto 0)  := (others => 'X'); -- address
+			ring_buffer_cam_2_csr_waitrequest  : out std_logic;                                        -- waitrequest
+			ring_buffer_cam_2_csr_write        : in  std_logic                     := 'X';             -- write
+			ring_buffer_cam_2_csr_writedata    : in  std_logic_vector(31 downto 0) := (others => 'X'); -- writedata
+			ring_buffer_cam_2_filllevel_data   : out std_logic_vector(15 downto 0);                    -- data
+			ring_buffer_cam_2_filllevel_valid  : out std_logic;                                        -- valid
+			ring_buffer_cam_3_csr_readdata     : out std_logic_vector(31 downto 0);                    -- readdata
+			ring_buffer_cam_3_csr_read         : in  std_logic                     := 'X';             -- read
+			ring_buffer_cam_3_csr_address      : in  std_logic_vector(4 downto 0)  := (others => 'X'); -- address
+			ring_buffer_cam_3_csr_waitrequest  : out std_logic;                                        -- waitrequest
+			ring_buffer_cam_3_csr_write        : in  std_logic                     := 'X';             -- write
+			ring_buffer_cam_3_csr_writedata    : in  std_logic_vector(31 downto 0) := (others => 'X'); -- writedata
+			ring_buffer_cam_3_filllevel_data   : out std_logic_vector(15 downto 0);                    -- data
+			ring_buffer_cam_3_filllevel_valid  : out std_logic;                                        -- valid
+			run_control_signal_ready           : out std_logic;                                        -- ready
+			run_control_signal_valid           : in  std_logic                     := 'X';             -- valid
+			run_control_signal_data            : in  std_logic_vector(8 downto 0)  := (others => 'X'); -- data
+			xcvr_clock_clk                     : in  std_logic                     := 'X';             -- clk
+			xcvr_reset_reset_n                 : in  std_logic                     := 'X'              -- reset_n
+		);
+	end component hit_stack_system;
+
