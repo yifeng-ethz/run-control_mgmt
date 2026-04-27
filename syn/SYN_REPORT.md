@@ -25,7 +25,7 @@ This file is the detailed standalone synthesis and timing note for
   `runctl_mgmt_host_local_cmd_backpressure_test`
 - canonical live-hardware reproducer:
   local-JTAG `LOCAL_CMD=0x31` through
-  `quartus_system/board_test/script/probe_runctl_local_host.tcl`
+  `firmware_builds/board_test/script/probe_runctl_local_host.tcl`
 - bug summary:
   one held `LOCAL_CMD` Avalon write beat could be re-armed as a phantom second
   command while the first command was still stalled on `aso_runctl_ready`

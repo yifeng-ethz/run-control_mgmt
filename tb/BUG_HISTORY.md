@@ -64,7 +64,7 @@ Historical formal note:
 
 - First seen in:
   - integrated FEB local-JTAG probe through
-    `quartus_system/board_test/script/probe_runctl_local_host.tcl` with
+    `firmware_builds/board_test/script/probe_runctl_local_host.tcl` with
     `--local-cmd 0x31 --post-delay-ms 100`
   - standalone direct reproducer
     `runctl_mgmt_host_local_cmd_backpressure_test`
@@ -131,7 +131,7 @@ Historical formal note:
 - First seen in:
   - FEB run-control broadcast reset debug on `2026-04-24`
   - SignalTap ready-chain capture
-    `quartus_system/board_test/signaltap/phase4c_runctl_ready_reset_broadcast_high_20260424.vcd`
+    `firmware_builds/board_test/signaltap/phase4c_runctl_ready_reset_broadcast_high_20260424.vcd`
   - directed standalone and integrated regressions added/updated around
     reset/stop-reset fanout backpressure
 - Symptom:
@@ -183,9 +183,9 @@ Historical formal note:
     `logs/runctl_mgmt_host_local_cmd_backpressure_test.log`,
     `logs/runctl_mgmt_host_synclink_idle_guard_test.log`
   - integrated regression:
-    `quartus_system/tb_int/INT_fe_scifi_v3-2026-04-17/scripts/run_rc.sh`
+    `firmware_builds/tb_int/INT_fe_scifi_v3-2026-04-17/scripts/run_rc.sh`
   - related generated source:
-    `quartus_system/feb_system_v3_pipe/synthesis/submodules/runctl_mgmt_host.sv`
+    `firmware_builds/feb_system_v3_pipe/synthesis/submodules/runctl_mgmt_host.sv`
 
 ### BUG-003-R: synclink `RUN_PREPARE` decoded SWB run-number bytes in the wrong order
 
@@ -237,7 +237,7 @@ Historical formal note:
   - after-fix standalone log:
     `logs/runctl_mgmt_host_swb_run_number_endian_test.log`
   - live hardware evidence:
-    `quartus_system/board_test/reports/check_run_control_20260424_pipe.log`
+    `firmware_builds/board_test/reports/check_run_control_20260424_pipe.log`
 
 ## 2026-04-25
 
@@ -245,7 +245,7 @@ Historical formal note:
 
 - First seen in:
   - FEB hardware full RC checker:
-    `quartus_system/board_test/reports/check_run_control_full_20260425_runctl264_seed3.log`
+    `firmware_builds/board_test/reports/check_run_control_full_20260425_runctl264_seed3.log`
   - failing opcodes:
     `start-link-test` (`0x20`), `stop-link-test` (`0x21`),
     `start-sync-test` (`0x24`), `test-sync` (`0x26`), and
@@ -290,6 +290,6 @@ Historical formal note:
     `pending / not run`
 - Reproducer and evidence:
   - live hardware pre-fix log:
-    `quartus_system/board_test/reports/check_run_control_full_20260425_runctl264_seed3.log`
+    `firmware_builds/board_test/reports/check_run_control_full_20260425_runctl264_seed3.log`
   - targeted standalone test extended in:
     `runctl_mgmt_host_synclink_cmd_matrix_test`

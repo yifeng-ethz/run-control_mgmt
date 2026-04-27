@@ -37,7 +37,7 @@ sources needed to reproduce that baseline shape with only:
 ```bash
 export MU3E_IP_CORES_ROOT=/path/to/mu3e-ip-cores
 qsys-generate run-control_mgmt/reference/feb_system_v2_snapshot_20260415/feb_system_v2.qsys \
-  --search-path="$MU3E_IP_CORES_ROOT/quartus_system,$" \
+  --search-path="$MU3E_IP_CORES_ROOT/firmware_builds,$" \
   --synthesis=VHDL
 ```
 
