@@ -4,7 +4,7 @@
   <vendorID>MU3E</vendorID>
   <name>MU3E_RUNCTL_MGMT_HOST</name>
   <series>MU3E_FPGA_IP</series>
-  <version>26.2.6.0425</version>
+  <version>26.3.0.0505</version>
   <description>CMSIS-SVD description of the Run-Control Management Host CSR window. BaseAddress is 0 because this file describes the relative CSR aperture of the IP; system integration supplies the live slave base address.</description>
   <addressUnitBits>8</addressUnitBits>
   <width>32</width>

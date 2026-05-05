@@ -15,9 +15,11 @@
 // mailbox is replaced by a word-addressed CSR block with an identity header.
 //
 // Author  : Yifeng Wang (yifenwan@phys.ethz.ch)
-// Version : 26.2.6
-// Date    : 20260425
-// Change  : 26.2.6 — make ext_hard_reset a bounded pulse so the exported
+// Version : 26.3.0
+// Date    : 20260505
+// Change  : 26.3.0 — make the runctl fanout stream readyless so decoded
+//                     commands broadcast without downstream backpressure.
+//           26.2.6 — make ext_hard_reset a bounded pulse so the exported
 //                     subsystem reset cannot hold the LVDS/upload response
 //                     path in reset until STOP_RESET.
 //           26.2.5 — accept reset-protocol link-test and sync-test opcodes
@@ -60,10 +62,10 @@ module runctl_mgmt_host #(
     // Identity header (integration-overridable)
     parameter logic [31:0] IP_UID         = 32'h5243_4D48, // ASCII "RCMH"
     parameter logic [7:0]  VERSION_MAJOR  = 8'd26,
-    parameter logic [7:0]  VERSION_MINOR  = 8'd2,
-    parameter logic [3:0]  VERSION_PATCH  = 4'd6,
-    parameter logic [11:0] BUILD          = 12'h425,     // MMDD = 0425
-    parameter logic [31:0] VERSION_DATE   = 32'h2026_0425,
+    parameter logic [7:0]  VERSION_MINOR  = 8'd3,
+    parameter logic [3:0]  VERSION_PATCH  = 4'd0,
+    parameter logic [11:0] BUILD          = 12'h505,     // MMDD = 0505
+    parameter logic [31:0] VERSION_DATE   = 32'h2026_0505,
     parameter logic [31:0] VERSION_GIT    = 32'h0,
     parameter logic [31:0] INSTANCE_ID    = 32'h0,
     parameter logic [15:0] EXT_HARD_RESET_PULSE_CYCLES = 16'd16384
@@ -79,10 +81,9 @@ module runctl_mgmt_host #(
     output logic        aso_upload_startofpacket,
     output logic        aso_upload_endofpacket,
 
-    // <runctl> AVST source (lvdspll_clk)
+    // <runctl> AVST source (lvdspll_clk), readyless broadcast
     output logic        aso_runctl_valid,
     output logic [8:0]  aso_runctl_data,
-    input  logic        aso_runctl_ready,
 
     // <csr> AVMM slave (mm_clk) — 5-bit word address
     input  logic [4:0]  avs_csr_address,
@@ -705,12 +706,10 @@ module runctl_mgmt_host #(
                     end
                 end
                 HOST_POSTING: begin
-                    if (aso_runctl_ready && aso_runctl_valid) begin
-                        aso_runctl_valid <= 1'b0;
-                        host_exec_ts     <= gts_counter;
-                        pipe_r2h_done    <= 1'b1;
-                        host_state       <= HOST_CLEANUP;
-                    end
+                    aso_runctl_valid    <= 1'b0;
+                    host_exec_ts        <= gts_counter;
+                    pipe_r2h_done       <= 1'b1;
+                    host_state          <= HOST_CLEANUP;
                 end
                 HOST_CLEANUP: begin
                     if (!pipe_r2h_start) begin
@@ -786,7 +785,7 @@ module runctl_mgmt_host #(
     logic ext_hard_reset_q = 1'b0;
     logic [15:0] ext_hard_reset_count = 16'd0;
 
-    always_ff @(posedge lvdspll_clk) begin
+    always @(posedge lvdspll_clk) begin
         if (lvdspll_reset) begin
             dp_hard_reset_q         <= 1'b0;
             ct_hard_reset_q         <= 1'b0;

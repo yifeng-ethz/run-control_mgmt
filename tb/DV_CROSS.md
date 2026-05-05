@@ -20,12 +20,12 @@ cross coverage (102 cells across 7 axes).
 ## 0. Conventions
 
 - **Transaction**: one complete scenario — inject synclink/local stimulus,
-  drive CSR traffic, manipulate backpressure, sample coverage collectors on
+  drive CSR traffic, manipulate upload backpressure, sample coverage collectors on
   monitor hooks. DUT is reset only when the test explicitly asks for it.
 - **Sampling point**: `runctl_mgmt_cov` counter-collector hooks fire on the
   scoreboard's "transaction complete" signal for command-class bins, on every
   CSR beat for CSR-class bins, on every `log_wr_en` / `log_rd_en` for log bins,
-  and on every `runctl_ready` / `upload_ready` sample for backpressure bins.
+  and on every `runctl_valid` / `upload_ready` sample for stream-observation bins.
 - **Pattern names** (must match `DV_HARNESS.md` when it lands — proposed here):
   - `always-ready` — ready held 1'b1 for the entire test.
   - `1-clk-stutter` — ready toggles 1/0 every cycle (50% duty).
@@ -38,7 +38,7 @@ cross coverage (102 cells across 7 axes).
   - `continuous-ready` — DV_PLAN C1 alias for `always-ready`.
 - **Coverage axes** (re-stated from DV_PLAN.md §5.3, verbatim cardinalities):
   - `C1` — synclink cmd class (10) × upload backpressure (3) = 30 cells
-  - `C2` — runctl ready latency (4) × recv_state stall in POSTING (1) = 4 cells
+  - `C2` — readyless runctl path (2) × fanout class (2) = 4 cells
   - `C3` — CSR activity class (3) × recv_state (4) = 12 cells
   - `C4` — log FIFO occupancy bin (5) × LOG_POP burst length (3) = 15 cells
   - `C5` — rst_mask combo (4) × reset cmd class (2) = 8 cells
@@ -87,7 +87,7 @@ C1 and C7.
 | **Category** | CSR × recv-state mix |
 | **Axes covered** | C3 (primary), C1 (secondary), C7 (incidental) |
 | **Goal** | Prove CSR read traffic to STATUS / RECV_TS / LAST_CMD is atomic and non-intrusive while every recv_state value is visited. Closes the `read × {IDLE, RX_PAYLOAD, POSTING, LOG_WR}` row of C3 (4 cells). |
-| **Setup** | Default CSRs. runctl_sink = `8-clk-hold` so the host FSM visibly enters POSTING. upload_sink = `always-ready`. log FIFO initialised empty. |
+| **Setup** | Default CSRs. runctl monitor readyless, upload_sink = `always-ready`, log FIFO initialised empty. |
 | **Stimulus** | 1. Seed LCG, kick CSR agent into a continuous read-only loop that round-robins STATUS (0x03) → RECV_TS_L (0x09) → RECV_TS_H (0x0A) → LAST_CMD (0x04) with 0..3-cycle idle gaps. 2. Inject a 32-command stream on synclink covering every command class at least once (use the 10-symbol class set). 3. Withhold one synclink byte mid-payload for two of the commands to force RX_PAYLOAD sampling. 4. After the stream, drain log FIFO via 4 LOG_POP reads per command. |
 | **Expected** | 1. Every CSR read completes in 1 mm_clk with scoreboard-matched data. 2. No command is dropped; RX_CMD_COUNT equals the issued count. 3. Scoreboard sees recv_state ∈ {IDLE, RX_PAYLOAD, POSTING, LOG_WR} at ≥1 CSR-read sample each. 4. No SVA firings. |
 | **Cells hit** | C3[read×IDLE], C3[read×RX_PAYLOAD], C3[read×POSTING], C3[read×LOG_WR]; C1[{RP,RS,ST,ER,AB,RST,SRST,EN,DI,AD} × continuous-ready]; C7[IDLE × *] for any command issued while recv was idle. |
@@ -101,7 +101,7 @@ C1 and C7.
 | **Category** | CSR × recv-state mix (write side) |
 | **Axes covered** | C3 (primary), C1 (secondary) |
 | **Goal** | Prove write traffic to SCRATCH / CONTROL does not interfere with the recv or host FSMs. Closes the `write × *` row of C3 (4 cells). |
-| **Setup** | runctl_sink = `random-LCG` at 50%. upload_sink = `always-ready`. CONTROL rst_masks start at 00. |
+| **Setup** | Runctl monitor readyless. upload_sink = `always-ready`. CONTROL rst_masks start at 00. |
 | **Stimulus** | 1. Launch CSR agent in write-only mode: SCRATCH=LCG pattern, CONTROL bit-twiddles on rst_mask_dp/rst_mask_ct (not on soft_reset/log_flush). 2. Inject 20 synclink commands spanning all classes except 0x30/0x31 (to avoid confounding CONTROL mask reads). 3. Deliberately time 4 writes to land while recv is in RX_PAYLOAD and 4 more while in POSTING (monitor feedback via recv_state_enc). |
 | **Expected** | 1. All 20 commands delivered. 2. CSR shadow agrees after each write. 3. rst_mask_dp/ct never corrupts the in-flight command path (no spurious dp/ct_hard_reset). |
 | **Cells hit** | C3[write×IDLE], C3[write×RX_PAYLOAD], C3[write×POSTING], C3[write×LOG_WR]; C1[{RP,RS,ST,ER,AB,EN,DI,AD} × continuous-ready]. |
@@ -115,8 +115,8 @@ C1 and C7.
 | **Category** | Injection-path contention |
 | **Axes covered** | C7 (primary), C1 (secondary), C3 (incidental) |
 | **Goal** | Verify the arbitration between `local_cmd` (mm_clk submit, toggle-handshake CDC) and `synclink` (lvdspll_clk stream) serialises into one recv pipeline without loss or reordering-beyond-spec. |
-| **Setup** | Default CSRs. runctl_sink = `always-ready`. upload_sink = `always-ready`. |
-| **Stimulus** | 1. Start a slow synclink command (CMD_RESET with 16-bit payload) and stall one payload byte via AVST valid deassertion so recv stays in RX_PAYLOAD. 2. Issue a LOCAL_CMD write of RUN_SYNC (0x11000000) from the CSR side. 3. Poll STATUS.local_cmd_busy, wait for release, then submit ABORT_RUN (0x14000000) via LOCAL_CMD. 4. Release the stalled synclink byte; let both drain. 5. Repeat the sequence with recv in POSTING (hold runctl_ready=0 for 32 cycles). |
+| **Setup** | Default CSRs. runctl monitor readyless. upload_sink = `always-ready`. |
+| **Stimulus** | 1. Start a slow synclink command (CMD_RESET with 16-bit payload) and stall one payload byte via AVST valid deassertion so recv stays in RX_PAYLOAD. 2. Issue a LOCAL_CMD write of RUN_SYNC (0x11000000) from the CSR side. 3. Poll STATUS.local_cmd_busy, wait for release, then submit ABORT_RUN (0x14000000) via LOCAL_CMD. 4. Release the stalled synclink byte; let both drain. 5. Repeat near a readyless runctl command handoff. |
 | **Expected** | 1. Both synclink and local commands reach the host FSM in an order consistent with the reference model. 2. STATUS.local_cmd_busy is asserted while the toggle handshake is in flight and never drops `local_cmd` writes that were accepted by the mm side. 3. Log FIFO records all commands. |
 | **Cells hit** | C7[RX_PAYLOAD × RS], C7[RX_PAYLOAD × AB], C7[POSTING × RS], C7[POSTING × AB]; C1[RST × continuous-ready]; C3[write × RX_PAYLOAD], C3[write × POSTING] (the LOCAL_CMD write is a CSR write). |
 | **Pass** | ≥4 C7 cells hit, no lost commands, CDC handshake clean (SVA sva_cdc silent). |
@@ -129,7 +129,7 @@ C1 and C7.
 | **Category** | rst_mask × reset command cross |
 | **Axes covered** | C5 (primary, sweeps full 8-cell matrix), C3 (incidental) |
 | **Goal** | Close the full C5 matrix: 4 rst_mask combos × {CMD_RESET, CMD_STOP_RESET}. |
-| **Setup** | runctl_sink = `always-ready`. upload_sink = `always-ready`. Start from dp_hard_reset=ct_hard_reset=0. |
+| **Setup** | Runctl monitor readyless. upload_sink = `always-ready`. Start from dp_hard_reset=ct_hard_reset=0. |
 | **Stimulus** | For each of the 4 combos {dp=0 ct=0, dp=0 ct=1, dp=1 ct=0, dp=1 ct=1}: 1. Write CONTROL.rst_mask to the combo. 2. Send CMD_RESET (0x30) with assert_mask=0xFFFF. 3. Wait 16 lvdspll cycles. 4. Send CMD_STOP_RESET (0x31) with release_mask=0xFFFF. 5. Wait 16 cycles, read RESET_MASK CSR and dp/ct_hard_reset via STATUS. |
 | **Expected** | 1. dp_hard_reset asserts only when rst_mask_dp=0. 2. ct_hard_reset asserts only when rst_mask_ct=0. 3. CMD_STOP_RESET deasserts symmetrically. 4. RESET_MASK CSR always updated regardless of mask. |
 | **Cells hit** | C5[00×RST], C5[00×SRST], C5[01×RST], C5[01×SRST], C5[10×RST], C5[10×SRST], C5[11×RST], C5[11×SRST]; C3[write×IDLE] via CONTROL writes. |
@@ -143,7 +143,7 @@ C1 and C7.
 | **Category** | Log FIFO occupancy × LOG_POP burst sweep |
 | **Axes covered** | C4 (primary, 15 cells), C1 (secondary) |
 | **Goal** | Sweep the full 5×3 C4 matrix by deliberately steering the log FIFO through every occupancy bin (empty, low<25%, mid, high>75%, near-full) while popping with each of the 3 burst lengths {1, 4, 16}. |
-| **Setup** | runctl_sink = `always-ready`. upload_sink = `always-ready`. Log FIFO depth = `LOG_DEPTH` per RTL parameter; "low/mid/high/near-full" thresholds are 25% / 50% / 75% / ≥87.5% of `LOG_DEPTH` sub-words. |
+| **Setup** | Runctl monitor readyless. upload_sink = `always-ready`. Log FIFO depth = `LOG_DEPTH` per RTL parameter; "low/mid/high/near-full" thresholds are 25% / 50% / 75% / ≥87.5% of `LOG_DEPTH` sub-words. |
 | **Stimulus** | 1. Empty phase: read LOG_STATUS, pop 1 sub-word (returns 0), record cell C4[empty×1]. 2. Push 1 command (= 4 sub-words), pop 1 (cell C4[low×1]), pop 4 (cell C4[empty×4]). 3. Push commands until `rdusedw` enters the mid band, pop 4 (mid×4), pop 16 (mid×16). 4. Push until high band, pop 1 (high×1), pop 16 (high×16). 5. Push until near-full, pop 4 (near-full×4), pop 16 (near-full×16), pop 1 (near-full×1). 6. Drain until low band, burst 16 (low×16) then 4 (low×4). 7. Drain to empty, verify rdempty. |
 | **Expected** | 1. Every popped sub-word matches the scoreboard reference for that command. 2. `rdusedw` trajectory matches monitor samples. 3. No torn log entries even when pops race with writes. |
 | **Cells hit** | C4 full 15-cell matrix; C1[{RS,ST,EN,DI} × continuous-ready] for filler commands. |
@@ -157,24 +157,24 @@ C1 and C7.
 | **Category** | Command class × upload backpressure sweep |
 | **Axes covered** | C1 (primary, full 30-cell matrix) |
 | **Goal** | Close the full C1 matrix: 10 synclink command classes × 3 upload backpressure modes. Both RUN_PREPARE and END_RUN produce upload ack packets; the other 8 classes are cross-sampled because they still traverse the host path while upload backpressure is applied and C1 is defined as `cmd × upload_bp`, not `cmd × has_ack`. |
-| **Setup** | runctl_sink = `always-ready`. The three upload backpressure patterns are tagged per DV_PLAN C1 axis names: `continuous-ready`, `toggled` (= `1-clk-stutter`), `held-low` for 64 cycles. |
+| **Setup** | Runctl monitor readyless. The three upload backpressure patterns are tagged per DV_PLAN C1 axis names: `continuous-ready`, `toggled` (= `1-clk-stutter`), `held-low` for 64 cycles. |
 | **Stimulus** | For each backpressure mode in {continuous-ready, toggled, held-low}: 1. Reset upload sink to the mode. 2. Send one command of each class (RP, RS, ST, ER, AB, RST with mask=0x5A5A, SRST with mask=0x5A5A, EN, DI, AD). 3. For held-low, release upload ready after each command completes so the FSM drains before the next. |
 | **Expected** | 1. Exactly two upload ack packets per mode (K30.7 after RP, K29.7 after ER), never more. 2. Under `held-low`, upload FSM stalls for exactly 64 cycles and then emits the ack. 3. Non-ack commands do not spuriously assert upload valid. |
 | **Cells hit** | C1 full 30-cell matrix: {RP,RS,ST,ER,AB,RST,SRST,EN,DI,AD} × {continuous-ready, toggled, held-low}. |
 | **Pass** | C1 30/30 cells hit; upload scoreboard clean. |
 | **Status** | planned |
 
-### X007 — runctl_latency_sweep
+### X007 — runctl_readyless_fanout
 
 | Field | Detail |
 |-------|--------|
-| **Category** | runctl ready latency sweep |
+| **Category** | readyless runctl fanout sweep |
 | **Axes covered** | C2 (primary, full 4-cell matrix), C3 (incidental) |
-| **Goal** | Sweep runctl ready latency ∈ {0, 1, mid=8, max=64} while the host FSM is in POSTING, and prove the recv FSM never deadlocks. |
+| **Goal** | Sweep synclink and LOCAL_CMD sources across fanout and ADDRESS-suppressed commands, and prove the recv FSM never waits for downstream ready. |
 | **Setup** | upload_sink = `always-ready`. Log FIFO empty. |
-| **Stimulus** | For each latency L in {0, 1, 8, 64}: 1. Configure runctl_sink to `held-low` with release-on-request after L cycles from runctl_valid rising. 2. Send a RUN_SYNC followed by a START_RUN. 3. Observe recv_state stall at POSTING via STATUS.recv_state_enc (CSR read while stalled → also feeds C3). 4. Release ready, let both drain. |
-| **Expected** | 1. Exactly 2 runctl transactions per iteration. 2. Stall duration ≈ L lvdspll cycles. 3. No watchdog / no FSM hang. |
-| **Cells hit** | C2[L=0 × POSTING], C2[L=1 × POSTING], C2[L=mid × POSTING], C2[L=max × POSTING]; C3[read×POSTING]. |
+| **Stimulus** | For each source in {synclink, LOCAL_CMD}: 1. Send RUN_SYNC. 2. Send ADDRESS. 3. Poll STATUS/LAST_CMD around both commits. |
+| **Expected** | 1. RUN_SYNC emits exactly one readyless runctl beat. 2. ADDRESS updates FPGA_ADDRESS without a runctl beat. 3. STATUS returns idle without a ready wait. |
+| **Cells hit** | C2[synclink × emits], C2[synclink × suppressed], C2[LOCAL_CMD × emits], C2[LOCAL_CMD × suppressed]; C3[read×IDLE]. |
 | **Pass** | C2 4/4 cells hit. |
 | **Status** | planned |
 
@@ -227,8 +227,8 @@ C1 and C7.
 | **Category** | local_cmd submit phase × command class sweep |
 | **Axes covered** | C7 (primary, full 30-cell matrix), C3 (incidental) |
 | **Goal** | Close the full C7 matrix. Submit every one of the 10 command classes via LOCAL_CMD in each of the 3 recv FSM phases {IDLE, RX_PAYLOAD, POSTING}. |
-| **Setup** | runctl_sink = `8-clk-hold` (to make POSTING reachable). upload_sink = `always-ready`. |
-| **Stimulus** | Outer loop over phase P in {IDLE, RX_PAYLOAD, POSTING}, inner loop over command C in the 10-class set: 1. For P=IDLE: ensure no synclink activity, LOCAL_CMD(C) write, wait for busy clear. 2. For P=RX_PAYLOAD: start a synclink CMD_RESET, stall after the opcode, LOCAL_CMD(C) write during the stall, resume payload. 3. For P=POSTING: fill runctl buffer to cause POSTING stall, LOCAL_CMD(C) write, release runctl_ready. |
+| **Setup** | upload_sink = `always-ready`. |
+| **Stimulus** | Outer loop over phase P in {IDLE, RX_PAYLOAD, command handoff}, inner loop over command C in the 10-class set: 1. For P=IDLE: ensure no synclink activity, LOCAL_CMD(C) write, wait for busy clear. 2. For P=RX_PAYLOAD: start a synclink CMD_RESET, stall after the opcode, LOCAL_CMD(C) write during the stall, resume payload. 3. For P=command handoff: issue LOCAL_CMD on adjacent mm_clk cycles around a readyless runctl broadcast. |
 | **Expected** | 1. Each LOCAL_CMD write is accepted (busy low at submit time). 2. Toggle handshake completes before the next submit. 3. Scoreboard observes each command's fanout (except AD which only updates FPGA_ADDRESS). |
 | **Cells hit** | C7 full 30-cell matrix: {IDLE, RX_PAYLOAD, POSTING} × {RP, RS, ST, ER, AB, RST, SRST, EN, DI, AD}; C3[write × {IDLE, RX_PAYLOAD, POSTING}]. |
 | **Pass** | C7 30/30 cells hit; local_cmd_busy never drops a submitted word. |
@@ -240,8 +240,8 @@ C1 and C7.
 |-------|--------|
 | **Category** | Long random regression |
 | **Axes covered** | All 7 (C1–C7) as an opportunistic mop-up |
-| **Goal** | 5000 mixed-command transactions with randomised CSR activity, backpressure patterns, and reset-mask combos, to catch cells missed by the directed sweeps and to stress long-run counter/CDC paths. |
-| **Setup** | Fixed `+SEED=` per regression bucket. runctl_sink and upload_sink independently cycle through {always-ready, 1-clk-stutter, 8-clk-hold, random-LCG} on a per-100-command epoch. CSR agent alternates read / write / idle epochs. |
+| **Goal** | 5000 mixed-command transactions with randomised CSR activity, upload backpressure patterns, and reset-mask combos, to catch cells missed by the directed sweeps and to stress long-run counter/CDC paths. |
+| **Setup** | Fixed `+SEED=` per regression bucket. Runctl monitor is readyless; upload_sink cycles through {always-ready, 1-clk-stutter, 8-clk-hold, random-LCG} on a per-100-command epoch. CSR agent alternates read / write / idle epochs. |
 | **Stimulus** | 1. LCG-draw a command class per step (uniform over the 10 classes). 2. LCG-draw a payload value from {0, mid, all-ones} for payload-bearing commands. 3. 20% of steps substitute a LOCAL_CMD submit for a synclink send. 4. Every 500 steps, toggle CONTROL.rst_mask and send a RST/SRST pair. 5. Every 1000 steps, burst-pop the log FIFO by {1, 4, 16}. |
 | **Expected** | 1. RX_CMD_COUNT, RX_ERR_COUNT, LOG_STATUS all agree with the scoreboard. 2. No SVA firings. 3. At exit, `report_coverage()` shows zero `UNCOVERED:` lines on C1–C7. |
 | **Cells hit** | Opportunistic across all 102 cells; quantitative closure is the directed tests' responsibility. X012 is the safety net. |
@@ -255,7 +255,7 @@ C1 and C7.
 | **Category** | LOG_POP burst concurrent with synclink traffic |
 | **Axes covered** | C4 (primary), C3 (secondary), C1 (incidental) |
 | **Goal** | Verify LOG_POP bursts of 16 sub-words are atomic with respect to concurrent writes to the log FIFO from the RUN_PREPARE/END_RUN execution path. |
-| **Setup** | runctl_sink = `always-ready`. upload_sink = `1-clk-stutter` (so upload ack handling interleaves with log writes). Pre-fill the log FIFO to mid occupancy. |
+| **Setup** | Runctl monitor readyless. upload_sink = `1-clk-stutter` (so upload ack handling interleaves with log writes). Pre-fill the log FIFO to mid occupancy. |
 | **Stimulus** | 1. Start a back-to-back synclink stream of 8 × RUN_PREPARE (each = 5 bytes + 4 log sub-words). 2. Concurrently the CSR agent reads LOG_POP 16 times as a tight burst, then pauses, then reads another 16. 3. Repeat with 8 × END_RUN. |
 | **Expected** | 1. No sub-word is lost or duplicated. 2. Popped sub-words correspond to commands in issue order. 3. Upload ack count = 8 per phase. |
 | **Cells hit** | C4[mid × 16], C4[high × 16], C4[mid × 4]; C3[read × LOG_WR] (LOG_POP read landing on a log-write cycle); C1[RP × 1-clk-stutter], C1[ER × 1-clk-stutter]. |
@@ -269,7 +269,7 @@ C1 and C7.
 | **Category** | META page selector sweep × recv state |
 | **Axes covered** | C3 (primary, write×* and read×*), C1 (incidental) |
 | **Goal** | Verify META page selector writes/reads are non-disruptive and all four META pages are observable while the recv FSM is active. Reinforces C3 coverage for tests where X001 / X002 missed specific cells due to timing jitter. |
-| **Setup** | runctl_sink = `random-LCG`. upload_sink = `always-ready`. |
+| **Setup** | Runctl monitor readyless. upload_sink = `always-ready`. |
 | **Stimulus** | 1. CSR agent cycles META selector writes 0→1→2→3→0→... with a paired read after each write. 2. Simultaneously stream 40 mixed synclink commands. |
 | **Expected** | 1. Each META read returns the page matching the most recent selector write. 2. Command stream delivers without interference. |
 | **Cells hit** | C3[write×IDLE], C3[write×RX_PAYLOAD], C3[read×IDLE], C3[read×RX_PAYLOAD]; C1[{RS,ST,ER,AB} × continuous-ready]. |
@@ -282,9 +282,9 @@ C1 and C7.
 |-------|--------|
 | **Category** | SCRATCH pattern sweep × command traffic |
 | **Axes covered** | C3 (primary, write × POSTING/LOG_WR), C1 (incidental) |
-| **Goal** | Cover the SCRATCH pattern bin group (0x00000000, 0xFFFFFFFF, 0xAAAAAAAA, 0x55555555) while commands are flowing and runctl is stalled, reinforcing the C3 `write × POSTING` and `write × LOG_WR` cells. |
-| **Setup** | runctl_sink = `8-clk-hold`. upload_sink = `always-ready`. |
-| **Stimulus** | 1. Start a 12-command synclink stream (RS/ST/EN/DI/RP). 2. During each POSTING stall, CSR agent writes one of the four SCRATCH patterns in sequence. 3. After the stream, CSR agent reads SCRATCH to confirm the last pattern. |
+| **Goal** | Cover the SCRATCH pattern bin group (0x00000000, 0xFFFFFFFF, 0xAAAAAAAA, 0x55555555) while commands are flowing, reinforcing the C3 `write × command-handoff` and `write × LOG_WR` cells. |
+| **Setup** | Runctl monitor readyless. upload_sink = `always-ready`. |
+| **Stimulus** | 1. Start a 12-command synclink stream (RS/ST/EN/DI/RP). 2. Around each readyless command handoff, CSR agent writes one of the four SCRATCH patterns in sequence. 3. After the stream, CSR agent reads SCRATCH to confirm the last pattern. |
 | **Expected** | 1. SCRATCH readback = last-written pattern. 2. All 12 commands delivered. 3. scratch_pattern bin group 4/4 bins hit by end of test. |
 | **Cells hit** | C3[write × POSTING], C3[write × LOG_WR]; C1[{RS,ST,EN,DI,RP} × continuous-ready]. |
 | **Pass** | C3 `write × {POSTING, LOG_WR}` hit; scratch_pattern bin group 4/4 hit. |
@@ -343,13 +343,12 @@ report.
 | DI (0x33) | X001, X002, X006, X011, X014, X015 | X006 | X006 |
 | AD (0x40) | X001, X002, X006, X011 | X006 | X006 |
 
-### 4.2 C2 — runctl ready latency × POSTING stall (4 cells)
+### 4.2 C2 — readyless runctl path × fanout class (4 cells)
 
-| Latency | POSTING |
-|---|---|
-| 0     | X007 |
-| 1     | X007 |
-| mid=8 | X007, X003, X011, X015 |
+| Source | Emits runctl | Suppressed ADDRESS |
+|---|---|---|
+| synclink | X007 | X007 |
+| LOCAL_CMD | X007 | X007 |
 | max=64| X007 |
 
 ### 4.3 C3 — CSR activity × recv_state (12 cells)
@@ -490,13 +489,13 @@ DV_PLAN §6.3. Backpressure pattern names are the same as sections 0 / 2.
 
 | ID | Stimulus | Expected | Status |
 |----|----------|----------|--------|
-| X016_csr_read_status_during_all10_cmds | runctl_sink=`random-LCG`, upload_sink=`always-ready`. CSR agent reads STATUS back-to-back with 0..2-cycle gaps while a synclink burst of 20 commands cycles through all 10 classes. | Every STATUS read atomic (1 mm_clk), recv_state_enc field moves through the four encodings across samples, no command dropped. | planned |
+| X016_csr_read_status_during_all10_cmds | upload_sink=`always-ready`. CSR agent reads STATUS back-to-back with 0..2-cycle gaps while a synclink burst of 20 commands cycles through all 10 classes. | Every STATUS read atomic (1 mm_clk), recv_state_enc field moves across live states, no command dropped. | planned |
 | X017_csr_read_last_cmd_during_rp_stream | upload_sink=`held-low` for 32 cycles then released. CSR agent reads LAST_CMD while a stream of 8 × RUN_PREPARE runs. | LAST_CMD shadow monotonically advances, equals the most recently completed RP opcode at each sampled read. | planned |
 | X018_csr_read_run_number_during_start_run | Issue RUN_PREPARE(run=N), then START_RUN. CSR agent reads RUN_NUMBER on each lvdspll epoch across the pair. | RUN_NUMBER latches to N on RP post-commit and is stable across the subsequent ST. | planned |
 | X019_csr_read_reset_mask_during_rst_srst | Back-to-back CMD_RESET(assert=0xAA55) / CMD_STOP_RESET(release=0xAA55). CSR agent reads RESET_MASK every 4 cycles. | RESET_MASK[15:0] reflects assert mask after RST, [31:16] reflects release mask after SRST, intermediate reads atomic. | planned |
 | X020_csr_read_fpga_address_during_address_cmd | Send ADDRESS(0x40) with payload 0xCAFE followed by 5 mixed commands. CSR reads FPGA_ADDRESS throughout. | FPGA_ADDRESS updates exactly once on ADDRESS commit; other commands leave it unchanged; CMD_ADDRESS does not fan out on runctl (no runctl transaction for AD). | planned |
-| X021_csr_read_recv_ts_l_during_rx_payload | runctl_sink=`held-low`. Stall a CMD_RESET synclink payload mid-word. CSR agent reads RECV_TS_L every cycle during the stall. | RECV_TS_L stable (latched at opcode receive), consistent with RECV_TS_H shadow. | planned |
-| X022_csr_read_exec_ts_l_during_posting | Stall runctl_ready for 64 cycles during a RUN_SYNC POSTING phase. CSR reads EXEC_TS_L during stall and after release. | EXEC_TS_L latched on command exec; read during stall returns previous commit's stamp, updates only after current RUN_SYNC posts. | planned |
+| X021_csr_read_recv_ts_l_during_rx_payload | Stall a CMD_RESET synclink payload mid-word. CSR agent reads RECV_TS_L every cycle during the stall. | RECV_TS_L stable (latched at opcode receive), consistent with RECV_TS_H shadow. | planned |
+| X022_csr_read_exec_ts_l_during_readyless_fanout | Issue RUN_SYNC on the readyless runctl stream while CSR reads EXEC_TS_L before and after the broadcast. | EXEC_TS_L updates on command execution without a downstream-ready stall. | planned |
 | X023_csr_read_gts_l_during_end_run | Issue END_RUN while CSR agent reads GTS_L → GTS_H back-to-back. Upload_sink=`always-ready`. | GTS_L read latches GTS_H shadow atomically; subsequent GTS_H read returns the matching upper word even if counter advanced during the END_RUN. | planned |
 | X024_csr_read_rx_cmd_count_during_burst | Send a 40-command burst (all classes). CSR agent polls RX_CMD_COUNT between each command. | Counter increments by 1 per accepted command, saturates at 0xFFFFFFFF if forced (tested via X051). | planned |
 | X025_csr_read_log_pop_during_run_prepare_burst | Send 16 × RUN_PREPARE while CSR agent issues LOG_POP reads at rate 1/2 cycles. | LOG_POP returns log sub-words in FIFO order with no torn entries; after drain, LOG_POP returns 0 and LOG_STATUS.rdempty=1. | planned |
@@ -507,9 +506,9 @@ DV_PLAN §6.3. Backpressure pattern names are the same as sections 0 / 2.
 
 | ID | Stimulus | Expected | Status |
 |----|----------|----------|--------|
-| X028_meta_write_during_idle | runctl_sink=`always-ready`, no synclink activity. Write META page selector 0→1→2→3 with paired reads. | Each META read returns matching page; no spurious recv_state transitions. | planned |
+| X028_meta_write_during_idle | Runctl monitor readyless, no synclink activity. Write META page selector 0→1→2→3 with paired reads. | Each META read returns matching page; no spurious recv_state transitions. | planned |
 | X029_meta_write_during_rx_payload | Stall a synclink CMD_RESET payload mid-stream. Write META selector during RX_PAYLOAD. | META updates without interfering; synclink resumes and commits cleanly. | planned |
-| X030_meta_write_during_posting | runctl_sink=`held-low` for 32 cycles. Write META selector during POSTING stall. | META updates; post-stall runctl transaction completes. | planned |
+| X030_meta_write_during_command_handoff | Write META selector around a readyless runctl command handoff. | META updates; runctl transaction completes without ready wait. | planned |
 | X031_control_soft_reset_during_idle | Write CONTROL.soft_reset=1 while recv is idle, log FIFO populated with 4 entries. | CDC toggle pulse to lvds side; log FIFO drains on mm side; GTS counter NOT reset; scratch unchanged. | planned |
 | X032_control_soft_reset_during_log_wr | Send a RUN_PREPARE, and assert CONTROL.soft_reset in the same CSR write epoch as the LOG_WR cycle. | Soft-reset drains the log FIFO including the entry in flight; no torn writes; GTS preserved. | planned |
 | X033_scratch_write_pattern_during_rx_payload | Stall a CMD_RESET payload; write SCRATCH with {0,0xFFFFFFFF,0xAAAAAAAA,0x55555555} rotation. | SCRATCH readback = last pattern; recv FSM unaffected. | planned |
@@ -531,18 +530,18 @@ DV_PLAN §6.3. Backpressure pattern names are the same as sections 0 / 2.
 | X044_log_high_csr_read_pop | Log high. CSR read burst including LOG_POP×16. | LOG_POP drains 16 sub-words; subsequent occupancy in mid bin. | planned |
 | X045_log_empty_log_pop_returns_zero | Log empty. CSR LOG_POP read. | Returns 0; LOG_STATUS.rdempty=1 remains asserted. | planned |
 
-### 7.4 C11 — upload BP × runctl BP × {RP, ER} (8 representative)
+### 7.4 C11 — upload BP × readyless runctl command × {RP, ER} (8 representative)
 
 | ID | Stimulus | Expected | Status |
 |----|----------|----------|--------|
-| X046_bp_contready_contready_rp | runctl=`always-ready`, upload=`always-ready`. Send RP. | 1 runctl txn, 1 upload K30.7 ack, minimum latency. | planned |
-| X047_bp_toggled_toggled_rp | runctl=`1-clk-stutter`, upload=`1-clk-stutter`. Send RP. | 1 ack; stall durations ≈ 2× baseline; no deadlock. | planned |
-| X048_bp_heldlow_contready_rp | runctl=`held-low` 64 cycles, upload=`always-ready`. Send RP. | Ack emitted after runctl release; recv stalls in POSTING for ~64 cycles. | planned |
-| X049_bp_contready_heldlow_rp | runctl=`always-ready`, upload=`held-low` 64 cycles. Send RP. | Ack emitted after upload release; runctl txn completes immediately. | planned |
-| X050_bp_heldlow_heldlow_rp | Both paths held-low 64 cycles, staggered release (runctl first). | Single ack emitted only after both paths clear; order-independent commit. | planned |
-| X051_bp_toggled_heldlow_er | runctl=`1-clk-stutter`, upload=`held-low` 32 cycles. Send END_RUN. | Exactly one K29.7 ack after upload release; no spurious acks during held-low window. | planned |
-| X052_bp_heldlow_toggled_er | runctl=`held-low` 32 cycles, upload=`1-clk-stutter`. Send END_RUN. | 1 runctl txn once released; ack emitted with the stutter pattern preserved. | planned |
-| X053_bp_random_lcg_both_mix | Both paths `random-LCG` seeded 0x5A5A. 8 RP + 8 ER mix. | 16 acks total (8 K30.7 + 8 K29.7), order matches issue order, no loss. | planned |
+| X046_bp_contready_contready_rp | runctl readyless, upload=`always-ready`. Send RP. | 1 runctl txn, 1 upload K30.7 ack, minimum latency. | planned |
+| X047_bp_readyless_toggled_rp | runctl readyless, upload=`1-clk-stutter`. Send RP. | 1 runctl txn, 1 ack; upload stall bounded; no deadlock. | planned |
+| X048_bp_readyless_contready_er | runctl readyless, upload=`always-ready`. Send END_RUN. | 1 runctl txn, 1 upload K29.7 ack. | planned |
+| X049_bp_readyless_heldlow_rp | runctl readyless, upload=`held-low` 64 cycles. Send RP. | Runctl txn completes immediately; ack emits after upload release. | planned |
+| X050_bp_readyless_heldlow_er | runctl readyless, upload=`held-low` 64 cycles. Send END_RUN. | Runctl txn completes immediately; K29.7 ack emits after upload release. | planned |
+| X051_bp_readyless_heldlow_er_long | runctl readyless, upload=`held-low` 32 cycles. Send END_RUN. | Exactly one K29.7 ack after upload release; no spurious acks during held-low window. | planned |
+| X052_bp_readyless_toggled_er | runctl readyless, upload=`1-clk-stutter`. Send END_RUN. | 1 runctl txn immediately; ack emitted with the stutter pattern preserved. | planned |
+| X053_bp_readyless_random_lcg_mix | runctl readyless, upload `random-LCG` seeded 0x5A5A. 8 RP + 8 ER mix. | 16 acks total (8 K30.7 + 8 K29.7), order matches issue order, no loss. | planned |
 
 ### 7.5 C12 — rst_mask × reset cmd × pipe_r2h_done latency (8 representative)
 

@@ -83,7 +83,7 @@ Recovery budget for all section 1 cases: **32 lvdspll_clk cycles** from the last
 |-------|-------|
 | Category | synclink link error / soft error |
 | Goal | Single parity error while idle; DUT counts, drops, recovers. |
-| Setup | Full reset. CSR shadow reset. runctl sink ready=1. upload sink ready=1. RX_ERR_COUNT pre=0. RX_CMD_COUNT pre=0. |
+| Setup | Full reset. CSR shadow reset. runctl monitor readyless. upload sink ready=1. RX_ERR_COUNT pre=0. RX_CMD_COUNT pre=0. |
 | Injection | 1. Cycle C0: drive synclink valid=1, data=0x10, error={0,1,0}. 2. Cycle C1: drive valid=0 for 8 cycles. |
 | Expected recovery | 1. C0+1: recv_state -> LOG_ERROR. 2. C0+2..C0+4: recv_state -> IDLE. 3. runctl source: 0 beats. 4. upload source: 0 beats. 5. log FIFO: unchanged (empty). 6. CSR RX_ERR_COUNT read = 1. |
 | Coverage bins | `cov_err.err_class[parity]++`, `cov_err.err_state_entry[IDLE]++`, `cov_err.recovery_latency_bin[<=4]++`. |
@@ -122,7 +122,7 @@ Recovery budget for all section 1 cases: **32 lvdspll_clk cycles** from the last
 |-------|-------|
 | Category | synclink link error / mixed stream |
 | Goal | Interleaved valid bytes and errored bytes must be classified independently. Counters must not cross-contaminate. |
-| Setup | Full reset. RX_ERR_COUNT pre=0. RX_CMD_COUNT pre=0. runctl sink ready=1. |
+| Setup | Full reset. RX_ERR_COUNT pre=0. RX_CMD_COUNT pre=0. runctl monitor readyless. |
 | Injection | 1. Stream 32 bytes at 1 byte / lvds cycle. Even byte indices: valid RUN_SYNC (0x11) with error=0. Odd byte indices: 0x00 with error={0,1,0} (parity). 2. 16 valid RUN_SYNCs and 16 parity errors, alternating. |
 | Expected recovery | 1. For each valid byte: recv_state traverses IDLE -> POSTING -> LOG_WR -> IDLE; host FSM emits 0x11 on runctl. 2. For each errored byte: recv_state traverses current -> LOG_ERROR -> IDLE. 3. After the 32-byte stream: RX_CMD_COUNT=16, RX_ERR_COUNT=16. 4. Log FIFO holds 16 entries for the 16 valid RUN_SYNCs. |
 | Coverage bins | `cov_err.err_class[parity]+=16`, `cov_err.mixed_stream_hit++`, `cov_cmd.cmd_byte_synclink[0x11]++` hit 16 times. |
@@ -213,9 +213,9 @@ command on synclink) is still covered by R005.
 |-------|-------|
 | Category | CSR misuse / local_cmd contention |
 | Goal | Second LOCAL_CMD write while STATUS.local_cmd_busy=1 must not corrupt the first write or hang the AVMM. |
-| Setup | Full reset. recv idle. runctl sink held ready=0 so LOCAL_CMD will dwell in the toggle-handshake longer. |
-| Injection | 1. AVMM write LOCAL_CMD = 0x12000000 (START_RUN, no payload) at T0. 2. Read STATUS immediately, confirm local_cmd_busy=1. 3. AVMM write LOCAL_CMD = 0x14000000 (ABORT_RUN) at T0+4 mm_clk (still busy). 4. Release runctl sink ready=1 at T0+64. 5. Poll STATUS until local_cmd_busy=0. |
-| Expected recovery | 1. First LOCAL_CMD crosses mm -> lvds via toggle, recv FSM accepts 0x12, host emits 0x12 on runctl after ready. 2. Second LOCAL_CMD is rejected per PROPOSAL below. 3. local_cmd_busy clears after first command retires. 4. RX_CMD_COUNT increments per accepted writes (1 or 2 depending on lock). |
+| Setup | Full reset. recv idle. No runctl ready signal exists; LOCAL_CMD busy can only dwell in the mm/lvds toggle and host cleanup path. |
+| Injection | 1. AVMM write LOCAL_CMD = 0x12000000 (START_RUN, no payload) at T0. 2. Read STATUS immediately, confirm local_cmd_busy=1. 3. AVMM write LOCAL_CMD = 0x14000000 (ABORT_RUN) at T0+4 mm_clk if still busy. 4. Poll STATUS until local_cmd_busy=0. |
+| Expected recovery | 1. First LOCAL_CMD crosses mm -> lvds via toggle, recv FSM accepts 0x12, host emits one readyless runctl beat. 2. Second LOCAL_CMD follows the RTL-locked busy policy. 3. local_cmd_busy clears after accepted command retirement. 4. RX_CMD_COUNT increments per accepted writes. |
 | PROPOSAL | **needs RTL lock.** Candidates: (A) second write completes its AVMM phase cleanly but the data is dropped; local_cmd_busy stays high; only one runctl fanout observed. (B) second write blocks on waitrequest until the first retires, then accepts and fanouts 0x14. (C) AVMM returns immediate response but sets a sticky "local_cmd_dropped" error flag visible in STATUS (not currently in the CSR map). The DV will lock one of (A)/(B)/(C) when RTL lands. Today the scoreboard asserts (a) no AVMM hang and (b) at least one runctl fanout, and records actual observed behavior to drive the lock decision. |
 | Coverage bins | `cov_err.local_cmd_busy_write++`. |
 | Pass criteria | (a) no AVMM hang: both writes complete their waitrequest within 64 mm_clk, (b) no runctl deadlock: first LOCAL_CMD eventually fanouts, (c) scoreboard does not report a torn command (no half-0x12/half-0x14 byte on runctl), (d) local_cmd_busy eventually returns to 0. |
@@ -287,7 +287,7 @@ command on synclink) is still covered by R005.
 |-------|-------|
 | Category | reset interaction / CONTROL.soft_reset |
 | Goal | Pulse CONTROL.soft_reset (W1P) mid-command. All FSMs must go to IDLE, partial command discarded, no spurious outputs. This applies to recv in any state (IDLE, RX_PAYLOAD, POSTING, LOG_WR, LOG_ERROR). |
-| Setup | 5 sub-cases, one per recv_state value. Pre-arrange recv_state as follows: IDLE (no traffic); RX_PAYLOAD (send byte+2 payload); POSTING (send byte, hold runctl ready=0); LOG_WR (send byte, hold log FIFO writeside busy); LOG_ERROR (inject parity error one cycle before soft_reset). |
+| Setup | 5 sub-cases, one per recv_state value. Pre-arrange recv_state as follows: IDLE (no traffic); RX_PAYLOAD (send byte+2 payload); command handoff (send byte around readyless fanout); LOG_WR (send byte, hold log FIFO writeside busy); LOG_ERROR (inject parity error one cycle before soft_reset). |
 | Injection | 1. AVMM write CONTROL with bit0=1 (soft_reset W1P pulse). 2. 16 mm_clk later, read STATUS. 3. On lvdspll side, send 1 clean RUN_SYNC. |
 | Expected recovery | 1. Per CONTROL.soft_reset spec: clears recv FSM, host FSM, snapshot record, log FIFO read pointer. 2. recv_state=IDLE, host_state=IDLE. 3. Log FIFO read pointer reset (entries are re-visible from 0 if the write pointer wasn't reset -- see PROPOSAL). 4. The trailing RUN_SYNC processes normally. |
 | PROPOSAL | **needs RTL lock.** soft_reset semantics on the log FIFO: DV_PLAN says "clears log FIFO read pointer", implying the write side is preserved. This means a soft_reset mid-LOG_WR could leave a half-written entry and the next pop returns a partial entry. Candidate (A): soft_reset clears BOTH sides of the log FIFO. Candidate (B): only read side cleared; mid-LOG_WR entry may leak as a torn entry on next pop. (A) is strongly preferred. Lock when RTL lands. |
@@ -313,17 +313,17 @@ command on synclink) is still covered by R005.
 
 ## 6. Back-to-back Errors and Backpressure (R012, R013) -- 2 cases
 
-### R012_runctl_ready_stuck_low
+### R012_runctl_ready_removed
 
 | Field | Value |
 |-------|-------|
-| Category | backpressure / sustained stall |
-| Goal | runctl sink ready held low for 10000 lvdspll_clk cycles after a command arrives: the FSM must stall cleanly without asserting any error flag and must complete on release. |
-| Setup | Full reset. runctl sink ready=1 initially. |
-| Injection | 1. C0: send RUN_SYNC byte on synclink. 2. C1: drive runctl sink ready=0. 3. C1..C10001: hold runctl ready=0. 4. C10001: runctl ready=1. 5. Observe the one runctl fanout beat. 6. C10020: send one more RUN_SYNC. |
-| Expected recovery | 1. During the stall: recv_state transitions to POSTING and host_state stalls with runctl valid=1, ready=0. STATUS.recv_idle=0, STATUS.host_idle=0. 2. RX_ERR_COUNT stays 0 (stall is not an error). 3. No watchdog / timeout in the FSM. 4. On release: one runctl beat observed (0x11). 5. RX_CMD_COUNT=1 after first command retires. 6. Second RUN_SYNC processes normally. |
-| Coverage bins | `cov_err.runctl_stall[long]++`. |
-| Pass criteria | (a) no hang within the expected stall window (FSM is allowed to stall indefinitely), (b) exactly 1 runctl beat observed after release, (c) RX_ERR_COUNT=0 throughout, (d) second command fanout observed, (e) scoreboard agrees on both commands. |
+| Category | stale integration / removed backpressure |
+| Goal | The runctl stream has no ready port, so stale sink-ready wiring must fail at compile/elaboration rather than silently recreating backpressure. |
+| Setup | Full reset. Runctl monitor observes `valid` and `data` only. |
+| Injection | 1. Elaborate the readyless DUT wrapper. 2. Send RUN_SYNC. 3. Send a second RUN_SYNC after the first retires. |
+| Expected recovery | 1. No `aso_runctl_ready` port exists in the RTL, wrappers, or `_hw.tcl`. 2. Each RUN_SYNC emits exactly one readyless beat. 3. RX_ERR_COUNT stays 0. 4. RX_CMD_COUNT increments for both commands. |
+| Coverage bins | `cov_err.runctl_ready_removed++`. |
+| Pass criteria | (a) readyless wrapper compiles, (b) stale ready references are absent from non-legacy sources, (c) scoreboard observes exactly two runctl beats, (d) no timeout. |
 | Status | planned |
 
 ### R013_upload_ready_stuck_low
@@ -332,7 +332,7 @@ command on synclink) is still covered by R005.
 |-------|-------|
 | Category | backpressure / upload path |
 | Goal | upload sink ready held low after a RUN_PREPARE: upload FSM stalls, recv FSM behavior depends on whether upload backpressure is allowed to propagate to recv. On release, exactly one ack packet must emit. |
-| Setup | Full reset. upload sink ready=1. runctl sink ready=1. |
+| Setup | Full reset. upload sink ready=1. runctl monitor readyless. |
 | Injection | 1. Send RUN_PREPARE + 4 payload bytes on synclink at C0..C4. 2. C5: drive upload sink ready=0. 3. C5..C5005: hold. 4. C5005: upload ready=1. 5. C5030: send END_RUN (which also emits an upload ack). 6. C5030..C6030: upload ready=1. |
 | Expected recovery | 1. During stall: upload FSM stalls with valid=1. 2. recv FSM: allowed to complete its log write and return to IDLE; POSTING of the RUN_PREPARE is not blocked by upload backpressure per DV_PLAN (runctl vs upload are independent sinks). 3. RX_CMD_COUNT increments to 1 after RUN_PREPARE is scoreboarded. 4. On upload release: exactly 1 K30.7 ack emits. 5. END_RUN processes normally and emits K29.7. Total upload beats = 2. |
 | PROPOSAL | **needs RTL lock.** The decoupling between recv/host/upload FSMs is asserted by DV_PLAN but not yet locked in RTL. If the upload stall does back-propagate and block recv, the expected recovery changes: RX_CMD_COUNT would not increment until release. Lock when RTL lands. |
@@ -369,7 +369,7 @@ This document requires the following **new counter-based bins** in `runctl_mgmt_
 | cov_err | csr_oob_read | 1 bin | AVMM read to addr 0x15..0x1F |
 | cov_err | csr_oob_write | 1 bin | AVMM write to addr 0x15..0x1F |
 | cov_err | local_cmd_busy_write | 1 bin | AVMM write to LOCAL_CMD with STATUS.local_cmd_busy=1 |
-| cov_err | runctl_stall | short, long (2 bins) | longest-observed runctl ready=0 duration bin |
+| cov_err | runctl_ready_removed | 1 bin | stale runctl-ready wiring absent from non-legacy sources |
 | cov_err | upload_stall | short, long (2 bins) | longest-observed upload ready=0 duration bin |
 | cov_err | mixed_stream_hit | 1 bin | R016 pattern detected |
 | cov_err | loss_sync_during_pause | 1 bin | R005/R006 pattern |
@@ -509,7 +509,7 @@ The RTL has **no payload watchdog**. In RECV_RX_PAYLOAD the FSM waits indefinite
 | R074_csr_write_ro_shadow_group | AVMM writes to RUN_NUMBER, RESET_MASK, FPGA_ADDRESS, RECV_TS_L/H, EXEC_TS_L/H, GTS_L/H, RX_CMD_COUNT, RX_ERR_COUNT, LOG_STATUS (all RO). One write per addr, 11 sub-writes. | Each hits the default arm of the write case: 1-cycle accept, no effect. Read-back reflects shadowed live values, not written garbage. | planned |
 | R075_csr_write_LOG_POP_ro | AVMM write addr=CSR_LOG_POP=0x12 twice. | CSR_LOG_POP absent from write case -> default arm, no effect. Subsequent reads still auto-pop correctly. | planned |
 | R076_csr_read_LOG_POP_auto_pop_smoke | Push 4 clean RUN_SYNCs, confirm 4 log entries. Read LOG_POP 16 times. | First 16 reads return the 4 4-sub-word entries in order, each read toggles log_fifo_rdreq (line 1008-1015). Post-drain reads return 0 (empty branch). No RTL wait on pops. | planned |
-| R077_csr_write_LOCAL_CMD_while_busy_stall | Hold runctl ready=0. T0: write LOCAL_CMD=0x12000000. T0+2: write LOCAL_CMD=0x14000000 while busy. | First write enters CSR_IDLE branch, captures local_cmd_word_mm, toggles local_cmd_req_mm. Second write: busy=1 -> CSR_LOCAL_WAIT, waitrequest=1 until busy clears (line 954-962). No command tear. AVMM watchdog budget 1024 mm_clk. | planned |
+| R077_csr_write_LOCAL_CMD_while_busy_stall | T0: write LOCAL_CMD=0x12000000. T0+2: write LOCAL_CMD=0x14000000 while busy. | First write enters CSR_IDLE branch, captures local_cmd_word_mm, toggles local_cmd_req_mm. Second write: busy=1 -> CSR_LOCAL_WAIT, waitrequest=1 until busy clears (line 954-962). No command tear. AVMM watchdog budget 1024 mm_clk. | planned |
 
 ### 11.5 Reset interactions (R078..R092)
 
@@ -517,7 +517,7 @@ The RTL has **no payload watchdog**. In RECV_RX_PAYLOAD the FSM waits indefinite
 |----|----------|----------|--------|
 | R078_lvdspll_reset_in_recv_idle | recv in IDLE, no traffic. Assert lvdspll_reset 8 cycles. | State unchanged (already IDLE). On release, recv accepts next clean byte. No counter change. | planned |
 | R079_lvdspll_reset_in_rx_payload | Send RUN_PREPARE + 2 payload. Assert lvdspll_reset for 8 cycles. | `lvds_fsm_rst` asserts, recv_state -> IDLE (line 372), recv_payload_cnt=0, recv_run_number unchanged shadow-side (mm domain owns shadows, only updated via snap_update toggle). Post-release smoke: send clean RUN_PREPARE, verify RX_CMD_COUNT=1. | planned |
-| R080_lvdspll_reset_in_logging | Drive runctl ready=0 so recv stalls in RECV_LOGGING (pipe_r2h handshake pending). Assert lvdspll_reset. | FSM reset flushes logging state, pipe_r2h_start cleared, log_fifo_wrreq cleared. No runctl beat emitted. Post-release: send clean RUN_SYNC, verify normal fanout. | planned |
+| R080_lvdspll_reset_in_logging | Drive recv into RECV_LOGGING with a log-write test hook. Assert lvdspll_reset. | FSM reset flushes logging state, pipe_r2h_start cleared, log_fifo_wrreq cleared. No torn runctl beat emitted. Post-release: send clean RUN_SYNC, verify normal fanout. | planned |
 | R081_lvdspll_reset_in_log_error | Inject parity error (LOG_ERROR entry), then assert lvdspll_reset within 1 cycle. | `ev_rx_error` already pulsed (before reset latch), so RX_ERR_COUNT may or may not have incremented depending on exact timing; DV must check both possibilities (`rx_err_count_lvds` increment is in a separate always_ff also gated by lvds_fsm_rst). Document: current RTL resets rx_err_count_lvds via lvds_fsm_rst path -> counter cleared. | planned |
 | R082_lvdspll_reset_in_cleanup | Drive recv into RECV_CLEANUP (any completion). Assert lvdspll_reset within 1 cycle. | State forced to IDLE. No residual pipe_r2h_start. Post-release smoke clean. | planned |
 | R083_mm_reset_during_csr_read | AVMM master starts a read of RX_CMD_COUNT. While waitrequest is being sampled, assert mm_reset. | waitrequest re-asserts to 1 (mm_reset branch). readdatavalid never fires for the pending beat. Master watchdog sees waitrequest released after mm_reset deassert; next read returns rx_cmd_count_mm=0 (shadow reset on mm_reset). | planned |
@@ -540,7 +540,7 @@ The RTL has **no payload watchdog**. In RECV_RX_PAYLOAD the FSM waits indefinite
 | R095_log_drop_count_saturate | Fill log FIFO to rdfull. Inject many more clean commands until log_drop_count_lvds reaches 0xFFFF_FFFE + 3. | `ev_log_drop` pulses on each over-full write attempt (line 525). Saturates at 0xFFFF_FFFF per guard. | planned |
 | R096_log_fifo_exact_full_plus_one | Fill FIFO to exactly wrfull=1 (capacity known from dcfifo params). Inject one more clean command. | `log_fifo_wrfull=1` branch: ev_log_drop pulses, no log entry written, recv FSM still moves LOGGING->CLEANUP->IDLE (drop-new policy confirmed, line 515-526). RX_CMD_COUNT still increments. | planned |
 | R097_log_fifo_full_then_flush_then_accept | Fill FIFO to rdfull. CONTROL.log_flush. After drain, inject 4 clean RUN_SYNCs. | Post-flush rdempty=1. New commands accepted with log entries. log_drop_count unchanged by flush. | planned |
-| R098_runctl_ready_stuck_low_100k | Send RUN_SYNC. Hold runctl ready=0 for 100000 lvdspll cycles. Release. Send another RUN_SYNC. | recv in LOGGING (pipe_r2h_start high, waiting for pipe_r2h_done). No watchdog exists in RTL. On release, one runctl beat, recv -> CLEANUP -> IDLE. Second RUN_SYNC processes normally. RX_ERR_COUNT=0. | planned |
+| R098_runctl_ready_absent_100k | Send RUN_SYNC, wait 100000 lvdspll cycles with no downstream runctl interaction, then send another RUN_SYNC. | Both commands emit one readyless beat and retire; no POSTING wait depends on a ready signal. RX_ERR_COUNT=0. | planned |
 | R099_upload_ready_stuck_low_100k | Send RUN_PREPARE (with upload ack path). Hold upload ready=0 for 100000 cycles. Send END_RUN mid-stall (should enqueue behind). Release. | Upload FSM in UPL_SEND with valid=1 throughout. recv + host FSMs stall waiting for host handshake to complete (pipe_r2h coupling). Document: upload backpressure back-propagates to recv since pipe_r2h_done gates on upload-complete for ack-producing commands. Second command also stalls. No hang. | planned |
 | R100_local_cmd_toggle_storm | AVMM writes LOCAL_CMD every mm_clk cycle for 64 cycles, alternating 0x12000000 / 0x14000000, ignoring busy polling. | First write accepted; subsequent writes stall on waitrequest in CSR_LOCAL_WAIT (line 959). Each commit consumes one writedata and pulses local_cmd_req_mm toggle. All 64 writes eventually retire in order. Scoreboard checks alternating 0x12/0x14 fanout on runctl (32 of each). No lost commands, no tear. | planned |
 

@@ -20,7 +20,7 @@ reports. This document is the canonical catalog and supersedes
 ### In-scope
 
 - `synclink_recv` FSM: byte-level command parsing, payload assembly, error counters, snapshot capture
-- `runctl_host` FSM: decoded command fanout on `runctl` AVST source with downstream backpressure
+- `runctl_host` FSM: decoded command fanout on readyless `runctl` AVST source
 - `rc_pkt_upload` FSM: 36-bit upload AVST source for RC ack packets (RUN_PREPARE / END_RUN)
 - `local_cmd` injection path with toggle-handshake CDC from mm_clk to lvdspll_clk
 - 5-bit / 32-bit AVMM CSR slave on `mm_clk` (word-addressed)
@@ -31,7 +31,7 @@ reports. This document is the canonical catalog and supersedes
 ### Out-of-scope
 
 - Central run-control box and 5G link encoder/decoder. Stimulus is injected directly as 9-bit synclink bytes; no link-layer codec is modeled.
-- Real downstream run-control agents. The runctl AVST source is terminated by a programmable backpressure sink.
+- Real downstream run-control agents. The runctl AVST source is observed as a readyless broadcast stream.
 - Quartus place-and-route timing closure.
 - Bitstream-level register access from JTAG-Avalon master (pure Avalon-MM functional model only).
 
@@ -42,7 +42,7 @@ reports. This document is the canonical catalog and supersedes
 | Interface | Type | Width | Clock | Direction | Notes |
 |-----------|------|-------|-------|-----------|-------|
 | `synclink` | AVST sink | data 9b (k+8b), error 3b | `lvdspll_clk` | in | data[8]=k-flag; error[2]=loss_sync, [1]=parity, [0]=decode |
-| `runctl` | AVST source | 9b | `lvdspll_clk` | out | decoded run-control fanout, ready/valid handshake |
+| `runctl` | AVST source | 9b | `lvdspll_clk` | out | decoded run-control fanout, readyless one-cycle valid broadcast |
 | `upload` | AVST source | 36b | `lvdspll_clk` | out | RC ack packets (sop/eop), data[35:32] are k-flags |
 | `csr` | AVMM slave | addr 5b (word), data 32b | `mm_clk` | in/out | 1-cycle read latency, no waitrequest |
 | `dp_hard_reset` | conduit | 1b | `lvdspll_clk` | out | sync to lvdspll, masked by CONTROL.rst_mask_dp |
@@ -213,7 +213,7 @@ bins are computed by tuple lookup rather than native `cross` constructs.
 | ID | Axes | Cells | Goal |
 |----|------|-------|------|
 | C1 | synclink cmd class (15) × upload backpressure (3: continuous-ready, toggled, held-low) | 45 | ≥1 each |
-| C2 | runctl ready latency (4: 0, 1, mid, max) × recv_state when stalled in POSTING (1) | 4 | ≥1 each |
+| C2 | readyless runctl fanout path (2: synclink, LOCAL_CMD) × fanout class (2: emits, suppressed ADDRESS) | 4 | ≥1 each |
 | C3 | CSR activity class (3: read, write, idle) × recv_state (4: IDLE, RX_PAYLOAD, POSTING, LOG_WR) | 12 | ≥1 each |
 | C4 | log FIFO occupancy bin (5: empty, low<25%, mid, high>75%, near-full) × LOG_POP burst length (3: 1, 4, 16) | 15 | ≥1 each |
 | C5 | rst_mask combo (4) × reset cmd class (2: CMD_RESET, CMD_STOP_RESET) | 8 | ≥1 each |
@@ -268,7 +268,7 @@ The tables below hold only the bring-up spine (B001–B022, E001–E020, X001–
 
 | ID | Stimulus | Expected | Status |
 |----|----------|----------|--------|
-| E001_runctl_ready_held_low | Send synclink cmd while runctl ready=0 for 64 cycles | host FSM stays in POSTING, recv FSM blocks; on ready release, single transaction completes | planned |
+| E001_runctl_readyless_broadcast | Send synclink cmd to readyless runctl stream | host emits one valid beat and retires without downstream handshake | planned |
 | E002_upload_ready_held_low | Send RUN_PREPARE while upload ready=0 for 128 cycles | upload FSM stalls; on release, exactly one ack packet emitted | planned |
 | E003_back_to_back_cmds | Stream 16 RUN_SYNC bytes back-to-back | All 16 fan out, RX_CMD_COUNT=16, log FIFO holds 16 entries | planned |
 | E004_log_fifo_near_full | Submit commands until LOG_STATUS.rdusedw approaches max | rdfull asserts; further commands continue but oldest log entries hold (RTL behavior verified) | planned |
@@ -279,7 +279,7 @@ The tables below hold only the bring-up spine (B001–B022, E001–E020, X001–
 | E009_control_mask_both | Set both masks, send CMD_RESET | Local `dp_hard_reset` / `ct_hard_reset` stay deasserted, `ext_hard_reset` still pulses; RESET_MASK CSR still updated | planned |
 | E010_gts_wrap | Run 48-bit gts to upper boundary, send command | recv_ts/exec_ts capture wrap correctly across word boundary | planned |
 | E011_address_no_fanout | Send 0x40 ADDRESS, monitor runctl | runctl source has zero transactions during address handling | planned |
-| E012_runctl_ready_toggle_1cycle | Send long sequence with runctl ready toggled every cycle | All commands accepted, no drops | planned |
+| E012_runctl_readyless_burst | Send long sequence on readyless runctl stream | All commands accepted, one-cycle fanout beats observed, no drops | planned |
 | E013_local_cmd_busy_block | Issue 2 LOCAL_CMD writes back-to-back without polling busy | Second write while local_cmd_busy=1 is dropped/ignored (per spec) | planned |
 | E014_soft_reset_idle | Pulse CONTROL.soft_reset while idle | All FSMs return to IDLE, snapshots cleared, log retained or flushed per spec | planned |
 | E015_log_flush | Pulse CONTROL.log_flush after queueing 5 entries | LOG_STATUS.rdempty asserts, LOG_POP returns 0 | planned |
@@ -287,7 +287,7 @@ The tables below hold only the bring-up spine (B001–B022, E001–E020, X001–
 | E017_unknown_command | Send byte 0x77 (undefined) | RTL ignores or counts it (per spec); no fanout, no log entry, no upload ack | planned |
 | E018_atomic_gts_two_readers | Two interleaved GTS_L/GTS_H read pairs from a sequencer | Each pair is internally consistent (no torn 48-bit value) | planned |
 | E019_status_state_encoding | Stall recv FSM in RX_PAYLOAD by withholding next byte; read STATUS | recv_state_enc reflects RX_PAYLOAD encoding | planned |
-| E020_runctl_ready_max_latency | Apply runctl ready latency = max_supported | All commands eventually drain, no FSM hang | planned |
+| E020_runctl_no_ready_port | Elaborate/package readyless runctl source | No `aso_runctl_ready` port exists and no runctl POSTING stall is possible | planned |
 
 Implementation note (`2026-04-22`):
 the current tree also carries a direct standalone test
@@ -307,7 +307,7 @@ two-write rejection case `E013_local_cmd_busy_block`.
 | X004_mask_combo_sweep | Iterate 4 mask combos × CMD_RESET / CMD_STOP_RESET pairs | Local `dp/ct` outputs match the mask truth table for all 8 combinations; exported `ext_hard_reset` pulses on RESET and can be cancelled by STOP_RESET independent of mask | planned |
 | X005_log_fill_drain_mix | Random fill/drain sequence touching empty/low/mid/high/near-full bins | Cov bin C4 fully covered; scoreboard agrees on all popped sub-words | planned |
 | X006_upload_backpressure_mix | All 10 command classes × 3 upload backpressure modes | Cov bin C1 (30 cells) fully covered; ack packets correct | planned |
-| X007_runctl_latency_sweep | Sweep runctl ready latency ∈ {0,1,mid,max} during POSTING | Cov bin C2 fully covered; FSM never deadlocks | planned |
+| X007_runctl_readyless_fanout | Sweep synclink/LOCAL_CMD fanout and ADDRESS suppression | Cov bin C2 fully covered; FSM never waits for downstream ready | planned |
 | X008_dual_reset_lvds_first | Assert lvdspll_reset before mm_reset | Both domains return to a clean idle, all CSRs at default | planned |
 | X009_dual_reset_mm_first | Assert mm_reset before lvdspll_reset | Same as X008 | planned |
 | X010_dual_reset_simul | Assert both resets simultaneously | Same as X008 | planned |
@@ -332,7 +332,7 @@ two-write rejection case `E013_local_cmd_busy_block`.
 | R009_soft_reset_during_cmd | Pulse CONTROL.soft_reset mid-command | All FSMs go to IDLE, partial command discarded, no spurious outputs | planned |
 | R010_log_flush_during_cmd | Pulse CONTROL.log_flush while a log entry is being written | No torn entry; either entire entry present or absent | planned |
 | R011_local_cmd_during_busy | Issue LOCAL_CMD twice with no busy poll | Second write rejected per spec; STATUS.local_cmd_busy correctly tracks | planned |
-| R012_runctl_ready_stuck_low | Hold runctl ready low for 10000 cycles after a command arrives | FSM stalls but does not assert error; on release, command completes | planned |
+| R012_runctl_ready_removed | Attempt to instantiate a runctl-ready sink path | Compile/elaboration rejects stale ready wiring; readyless broadcast still processes next command | planned |
 | R013_upload_ready_stuck_low | Hold upload ready low after RUN_PREPARE | Upload FSM stalls; subsequent cmds may or may not stall per spec; recovery on release | planned |
 | R014_log_fifo_full_overflow | Push more commands than log FIFO depth without popping | LOG_STATUS.rdfull asserts; behavior (drop oldest vs block new) verified against spec | planned |
 | R015_csr_addr_oob | Read/write CSR word 0x1F (out of range) | RTL returns 0 / write ignored, no waitrequest | planned |
@@ -382,7 +382,7 @@ These lock down behaviors the bucket files and scoreboard assume. Verified again
 - **Expected UVM components** (names only; structure deferred to DV_HARNESS):
   - `runctl_mgmt_env_pkg.sv` — env package
   - `synclink_agent` — AVST sink driver/monitor for the synclink port
-  - `runctl_sink_agent` — AVST source backpressure model for the runctl port
+  - `runctl_sink_agent` — readyless AVST monitor for the runctl port
   - `upload_sink_agent` — AVST source backpressure model for the upload port
   - `csr_agent` — AVMM master agent on the mm_clk side
   - `runctl_mgmt_scoreboard` — reference model for CSR shadow, log FIFO, upload acks, runctl fanout

@@ -30,7 +30,6 @@ module tb_top;
   reset_if    reset_vif(lvdspll_clk);
 
   initial begin
-    runctl_vif.ready = 1'b1;
     upload_vif.ready = 1'b1;
   end
 
@@ -46,7 +45,6 @@ module tb_top;
     .aso_upload_endofpacket  (upload_vif.endofpacket),
     .aso_runctl_valid        (runctl_vif.valid),
     .aso_runctl_data         (runctl_vif.data),
-    .aso_runctl_ready        (runctl_vif.ready),
     .avs_csr_address         (csr_vif.address),
     .avs_csr_read            (csr_vif.read),
     .avs_csr_readdata        (csr_vif.readdata),

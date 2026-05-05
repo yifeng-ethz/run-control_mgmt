@@ -105,8 +105,8 @@ tb/
       synclink_monitor.sv
       synclink_sequencer.sv
       synclink_txn.sv
-      runctl_sink_agent.sv               # AVST sink for runctl stream
-      runctl_sink_driver.sv              # ready-model driver (programmable latency)
+      runctl_sink_agent.sv               # readyless monitor for runctl stream
+      runctl_sink_driver.sv              # absent for readyless runctl
       runctl_sink_monitor.sv
       runctl_sink_txn.sv
       upload_sink_agent.sv               # AVST sink for upload stream
@@ -272,21 +272,15 @@ Role: inject 9-bit AVST data frames into the DUT's synclink sink, carrying comma
 
 The driver walks the queues and drives one AVST beat per lvdspll_clk edge. Because the DUT never backpressures, the protocol rule enforced is simply "data stable when valid" — easy to maintain because the driver holds each beat for one cycle. A companion monitor watches the interface to publish accepted beats for scoreboard correlation.
 
-### 5.2 `runctl_sink_agent` — AVST sink on `runctl_if`
+### 5.2 `runctl_sink_agent` — readyless AVST monitor on `runctl_if`
 
-Role: terminate the runctl output stream. The driver owns `ready` and programs its latency according to a ready-model field on a control transaction.
+Role: observe the runctl output stream. There is no `ready` signal: every `valid`
+cycle is a broadcast beat and downstream agents cannot backpressure the host.
 
-**Ready models** (set per-test via `env_cfg.runctl_ready_mode`):
-
-| Mode | Behavior |
-|------|----------|
-| `RDY_ALWAYS`    | `ready = 1` always (no backpressure) |
-| `RDY_LAT_N`     | assert `ready` exactly N cycles after each `valid` observed |
-| `RDY_TOGGLE_1`  | flip `ready` every cycle (1-cycle toggle) |
-| `RDY_HELD_LOW`  | `ready = 0` for `hold_cycles`, then `1` |
-| `RDY_RANDOM`    | LCG-driven random `ready`, seeded from `env_cfg.seed` |
-
-The monitor captures accepted transfers (`valid && ready`) and publishes one transaction per accepted beat (`runctl_sink_txn { logic [8:0] data; bit k_flag; }`). Scoreboard uses this stream to confirm that every expected fanout byte arrived in the expected order.
+The monitor captures every `valid` cycle and publishes one transaction per
+broadcast beat (`runctl_sink_txn { logic [8:0] data; bit k_flag; }`). Scoreboard
+uses this stream to confirm that every expected fanout byte arrived in order and
+that `CMD_ADDRESS` remains suppressed.
 
 ### 5.3 `upload_sink_agent` — AVST sink on `upload_if`
 
@@ -547,9 +541,9 @@ Every test ID in `DV_PLAN.md` section 6 maps to exactly one sequence class under
 
 | Plan ID | Sequence |
 |---------|----------|
-| E001_runctl_ready_held_low      | `edge_runctl_bp_seq` (mode=HELD_LOW) |
+| E001_runctl_readyless_broadcast | `edge_runctl_readyless_seq` |
 | E002_upload_ready_held_low      | `edge_upload_bp_seq` (mode=HELD_LOW) |
-| E003_back_to_back_cmds          | `edge_runctl_bp_seq` (mode=ALWAYS, burst) |
+| E003_back_to_back_cmds          | `edge_runctl_readyless_seq` (burst) |
 | E004_log_fifo_near_full         | `edge_log_fifo_seq` (fill) |
 | E005_log_pop_burst              | `edge_log_fifo_seq` (drain) |
 | E006_meta_invalid_page          | `basic_meta_pages_seq` (extended) |
@@ -558,15 +552,15 @@ Every test ID in `DV_PLAN.md` section 6 maps to exactly one sequence class under
 | E009_control_mask_both          | `edge_mask_combo_seq` (11) |
 | E010_gts_wrap                   | `edge_gts_wrap_seq` |
 | E011_address_no_fanout          | `edge_address_no_fanout_seq` |
-| E012_runctl_ready_toggle_1cycle | `edge_runctl_bp_seq` (mode=TOGGLE_1) |
+| E012_runctl_readyless_burst     | `edge_runctl_readyless_seq` (long burst) |
 | E013_local_cmd_busy_block       | `basic_local_cmd_seq` (two writes, no poll) |
 | E014_soft_reset_idle            | `edge_soft_reset_seq` |
 | E015_log_flush                  | `edge_log_flush_seq` |
 | E016_rx_err_count_increment     | `error_synclink_err_seq` (single parity) |
 | E017_unknown_command            | `edge_unknown_cmd_seq` |
 | E018_atomic_gts_two_readers     | `basic_gts_snapshot_seq` (interleaved) |
-| E019_status_state_encoding      | `edge_runctl_bp_seq` (stalled recv, status poll) |
-| E020_runctl_ready_max_latency   | `edge_runctl_bp_seq` (mode=LAT_N, N=max) |
+| E019_status_state_encoding      | `edge_payload_stall_seq` (RX_PAYLOAD status poll) |
+| E020_runctl_no_ready_port       | `edge_runctl_readyless_elab_seq` |
 
 ### 13.3 DV_CROSS (plan section 6.3)
 
@@ -603,7 +597,7 @@ Every test ID in `DV_PLAN.md` section 6 maps to exactly one sequence class under
 | R009_soft_reset_during_cmd   | `edge_soft_reset_seq` (mid-cmd) |
 | R010_log_flush_during_cmd    | `edge_log_flush_seq` (mid-cmd) |
 | R011_local_cmd_during_busy   | `basic_local_cmd_seq` (back-to-back) |
-| R012_runctl_ready_stuck_low  | `edge_runctl_bp_seq` (HELD_LOW, 10000 cycles) |
+| R012_runctl_ready_removed    | `error_runctl_ready_removed_seq` |
 | R013_upload_ready_stuck_low  | `edge_upload_bp_seq` (HELD_LOW, 10000 cycles) |
 | R014_log_fifo_full_overflow  | `error_log_fifo_overflow_seq` |
 | R015_csr_addr_oob            | `error_csr_oob_seq` |

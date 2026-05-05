@@ -2,7 +2,7 @@
 # runctl_mgmt_host_hw.tcl
 #
 # Platform Designer (Qsys) component definition for the Run-Control Management
-# Host Mu3e IP Core (SystemVerilog rewrite, version 26.2.6).
+# Host Mu3e IP Core (SystemVerilog rewrite, version 26.3.0).
 #
 # This IP receives run-control commands on <synclink> (9-bit 8b/1k byte stream
 # in the lvdspll_clk domain), decodes and fans them out on <runctl>, acks
@@ -11,7 +11,7 @@
 # 21 functional registers, and a 1024-deep x 32b log read-back port.
 #
 # Author  : Yifeng Wang (yifenwan@phys.ethz.ch)
-# Packaged: 2026-04-25
+# Packaged: 2026-05-05
 ################################################################################
 
 package require -exact qsys 16.1
@@ -21,11 +21,11 @@ package require -exact qsys 16.1
 ################################################################################
 # VERSION string format: YY.MINOR.PATCH.MMDD
 set VERSION_MAJOR_DEFAULT_CONST 26        ;# 2-digit year
-set VERSION_MINOR_DEFAULT_CONST 2         ;# feature revision
-set VERSION_PATCH_DEFAULT_CONST 6         ;# bug-fix revision
-set BUILD_DEFAULT_CONST         0425      ;# MMDD packaging date (April 25)
-set VERSION_DATE_DEFAULT_CONST  20260425  ;# YYYYMMDD
-set VERSION_GIT_DEFAULT_CONST   0x379E13A ;# `git rev-parse --short HEAD`
+set VERSION_MINOR_DEFAULT_CONST 3         ;# feature revision
+set VERSION_PATCH_DEFAULT_CONST 0         ;# bug-fix revision
+set BUILD_DEFAULT_CONST         0505      ;# MMDD packaging date (May 5)
+set VERSION_DATE_DEFAULT_CONST  20260505  ;# YYYYMMDD
+set VERSION_GIT_DEFAULT_CONST   0xF3E2222 ;# `git rev-parse --short HEAD`
 set INSTANCE_ID_DEFAULT_CONST   0
 set IP_UID_DEFAULT_CONST        0x52434D48 ;# ASCII "RCMH"
 
@@ -209,7 +209,7 @@ add_html_text "Overview" overview_html {<html>
 the Mu3e central run-control box.<br/><br/>
 <ul>
 <li>Parses 9-bit 8b/1k command bytes on <b>synclink</b> in the lvdspll_clk domain.</li>
-<li>Decodes and fans out the run-control state on <b>runctl</b> (9-bit AVST source).</li>
+<li>Decodes and fans out the run-control state on <b>runctl</b> (9-bit readyless AVST source).</li>
 <li>Generates <b>upload</b> ack packets for <tt>CMD_RUN_PREPARE</tt> (K30.7 + run number) and <tt>CMD_END_RUN</tt> (K29.7).</li>
 <li>Drives <b>dp_hard_reset</b> / <b>ct_hard_reset</b> on <tt>CMD_RESET</tt> / <tt>CMD_STOP_RESET</tt> and emits a bounded <b>ext_hard_reset</b> pulse on <tt>CMD_RESET</tt>. The local dp/ct conduits remain gated by the CONTROL CSR mask bits.</li>
 <li>Exposes a 21-word CSR window on <b>csr</b> (5-bit word address, Avalon-MM slave) with identity header, live status, snapshots, saturating counters, atomic 48-bit GTS snapshot, and LOG_POP sub-word readback.</li>
@@ -317,7 +317,7 @@ add_html_text "Clock / Reset" clocks_html {<html>
 add_html_text "Data Path" datapath_html {<html>
 <b>synclink</b> &mdash; 9-bit AVST sink (data + error) carrying the 8b/1k byte stream from the central run-control box. No ready/valid (passive stream; every lvdspll_clk cycle is a byte).<br/>
 <b>upload</b> &mdash; 36-bit AVST source (sop/eop) emitting RC ack packets. Bits <tt>[35:32]</tt> are the k-flag field, <tt>[7:0]</tt> is the ack symbol, <tt>[31:8]</tt> is the 24-bit run number (RUN_PREPARE only).<br/>
-<b>runctl</b> &mdash; 9-bit AVST source emitting one-hot decoded run-control states to all on-FPGA agents. Ready/valid handshake; host FSM stalls in POSTING until all agents accept.
+<b>runctl</b> &mdash; 9-bit AVST source emitting one-hot decoded run-control states to all on-FPGA agents. The stream is readyless: <tt>valid</tt> marks a one-cycle broadcast beat and downstream agents cannot backpressure it.
 <br/><br/>
 </html>}
 
@@ -342,7 +342,7 @@ add_html_text "Data Path" upload_fmt_html {<html>
 </table></html>}
 
 add_html_text "Data Path" runctl_fmt_html {<html>
-<b>runctl</b> &mdash; 9-bit Avalon-ST source (one-hot state fanout)<br/>
+<b>runctl</b> &mdash; 9-bit readyless Avalon-ST source (one-hot state fanout)<br/>
 <table border="1" cellpadding="3" width="100%">
 <tr><th>Bit</th><th>State</th><th>Source command</th></tr>
 <tr><td>data[0]</td><td>IDLE</td><td>CMD_ABORT_RUN, CMD_STOP_RESET, CMD_ENABLE, unknown</td></tr>
@@ -530,7 +530,6 @@ set_interface_property runctl associatedReset   lvdspll_reset
 set_interface_property runctl dataBitsPerSymbol 9
 add_interface_port runctl aso_runctl_data  data  Output 9
 add_interface_port runctl aso_runctl_valid valid Output 1
-add_interface_port runctl aso_runctl_ready ready Input  1
 
 # csr (AVMM slave, mm_clk, 5-bit word address, 32-bit data)
 add_interface csr avalon end

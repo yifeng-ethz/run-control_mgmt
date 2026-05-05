@@ -23,7 +23,7 @@ This document expands every B-bucket entry in `DV_PLAN.md` section 6.1 into a di
 | 0x06 | RUN_NUMBER   | | 0x0E | GTS_H        | |      |              |
 | 0x07 | RESET_MASK   | | 0x0F | RX_CMD_COUNT | |      |              |
 
-All tests run with the default harness topology: `synclink_agent` driving the AVST sink, `runctl_sink_agent` and `upload_sink_agent` terminating the AVST sources with ready permanently asserted unless the test states otherwise, and `csr_agent` on the AVMM slave. The scoreboard snapshots CSR shadow state and records every runctl / upload transaction for comparison.
+All tests run with the default harness topology: `synclink_agent` driving the AVST sink, `runctl_sink_agent` observing the readyless runctl source, `upload_sink_agent` terminating the upload source with ready permanently asserted unless the test states otherwise, and `csr_agent` on the AVMM slave. The scoreboard snapshots CSR shadow state and records every runctl / upload transaction for comparison.
 
 ---
 
@@ -781,7 +781,7 @@ Mirror of 6.3 using the mm-side LOCAL_CMD injector. LOCAL_CMD word layout: [7:0]
 | ID | Stimulus | Expected | Status |
 |----|----------|----------|--------|
 | B092_status_recv_payload_state | Drive synclink RUN_PREPARE command byte then withhold the next valid byte for 32 lvdspll cycles; read STATUS during stall | STATUS[15:8] recv_state_enc = 0x01 (RX_PAYLOAD); recv_idle=0 | planned |
-| B093_status_host_logging_state | Stall runctl sink ready=0; send RUN_SYNC; once recv has posted to host, read STATUS | STATUS[23:16] host_state_enc matches the "LOGGING/POSTING" encoding (0x02 per DV_PLAN host FSM table); host_idle=0 | planned |
+| B093_status_host_readyless_state | Send RUN_SYNC and read STATUS around the readyless broadcast | STATUS returns to idle without a downstream-ready wait; LAST_CMD records RUN_SYNC | planned |
 
 ### 6.9 Counter smoke (B094-B095)
 

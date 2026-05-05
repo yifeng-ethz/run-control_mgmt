@@ -277,7 +277,7 @@ package runctl_mgmt_env_pkg;
       runctl_runctl_obs obs;
       forever begin
         @(posedge vif.clk);
-        if (vif.valid && vif.ready) begin
+        if (vif.valid) begin
           obs                = runctl_runctl_obs::type_id::create("obs");
           obs.data           = vif.data;
           obs.sample_time_ps = $time;
@@ -1075,16 +1075,12 @@ package runctl_mgmt_env_pkg;
 
     task run_phase(uvm_phase phase);
       runctl_csr_write_seq csr_write_seq;
-      logic [31:0]         last_cmd_readdata;
-      logic [31:0]         status_readdata;
-      bit                  busy_clear_seen;
 
       phase.raise_objection(this);
 
       wait_for_startup_settle();
       clear_observations();
 
-      runctl_ctl_vif.ready = 1'b0;
       @(posedge runctl_ctl_vif.clk);
 
       csr_write_seq = runctl_csr_write_seq::type_id::create("local_reset_bypass_bp");
@@ -1095,9 +1091,9 @@ package runctl_mgmt_env_pkg;
       wait_for_last_cmd(CMD_RESET);
       wait_for_reset_state(1'b1, 1'b1, 1'b1);
       expect_no_new_runctl(cfg.obs_timeout_cycles,
-                           "RESET fanned out while runctl ready was held low");
+                           "RESET fanned out on readyless runctl");
       wait_for_csr_mask(CSR_STATUS, 32'h40FF_FF33, 32'h0000_0033, 64,
-                        "RESET did not retire while runctl ready was low");
+                        "RESET did not retire on readyless runctl");
 
       csr_write_seq = runctl_csr_write_seq::type_id::create("local_stop_reset_bypass_bp");
       csr_write_seq.address   = CSR_LOCAL_CMD;
@@ -1107,45 +1103,19 @@ package runctl_mgmt_env_pkg;
       wait_for_last_cmd(CMD_STOP_RESET);
       wait_for_reset_state(1'b0, 1'b0, 1'b0);
       expect_no_new_runctl(cfg.obs_timeout_cycles,
-                           "STOP_RESET fanned out while runctl ready was held low");
+                           "STOP_RESET fanned out on readyless runctl");
       wait_for_csr_mask(CSR_STATUS, 32'h40FF_FF03, 32'h0000_0003, 64,
-                        "STOP_RESET did not retire while runctl ready was low");
+                        "STOP_RESET did not retire on readyless runctl");
 
       csr_write_seq = runctl_csr_write_seq::type_id::create("local_start_run_bp");
       csr_write_seq.address   = CSR_LOCAL_CMD;
       csr_write_seq.writedata = 32'h0000_0012;
       csr_write_seq.start(env.csr_agent.seqr);
 
-      busy_clear_seen = 1'b0;
-      repeat (64) begin
-        csr_read_once(CSR_STATUS, status_readdata);
-        if ((status_readdata & 32'h00FF_FF00) === 32'h0001_0200) begin
-          busy_clear_seen = 1'b1;
-          break;
-        end
-        @(posedge env.csr_agent.driver.vif.clk);
-      end
-      if (!busy_clear_seen) begin
-        dump_local_cmd_debug("fanout_stall_timeout");
-        `uvm_fatal(get_type_name(),
-                   $sformatf("START_RUN did not stall in POSTING/LOGGING while runctl ready was low: status=0x%08h",
-                             status_readdata))
-      end
-      csr_read_once(CSR_LAST_CMD, last_cmd_readdata);
-      if (last_cmd_readdata[7:0] !== CMD_STOP_RESET) begin
-        `uvm_fatal(get_type_name(),
-                   $sformatf("START_RUN retired early while runctl ready low: 0x%08h",
-                             last_cmd_readdata))
-      end
-
-      expect_no_new_runctl(cfg.obs_timeout_cycles,
-                           "runctl handshake occurred while runctl ready was held low");
-
-      runctl_ctl_vif.ready = 1'b1;
       wait_for_last_cmd(CMD_START_RUN);
       wait_for_runctl(RUNCTL_START_RUN);
       wait_for_csr_mask(CSR_STATUS, 32'h40FF_FF03, 32'h0000_0003, 64,
-                        "status did not return to idle after releasing runctl ready");
+                        "status did not return to idle after readyless runctl broadcast");
 
       `uvm_info(get_type_name(), "*** TEST PASSED ***", UVM_NONE)
       phase.drop_objection(this);
@@ -1183,7 +1153,6 @@ package runctl_mgmt_env_pkg;
       wait_for_startup_settle();
       clear_observations();
 
-      runctl_ctl_vif.ready = 1'b0;
       @(posedge runctl_ctl_vif.clk);
 
       raw_symbols = {};
@@ -1219,7 +1188,7 @@ package runctl_mgmt_env_pkg;
                            "comma-qualified RESET must not emit runctl");
       expect_no_new_upload(cfg.obs_timeout_cycles, "RESET must not upload");
       wait_for_csr_mask(CSR_STATUS, 32'h00FF_FF33, 32'h0000_0033, 64,
-                        "comma-qualified RESET did not retire while ready low");
+                        "comma-qualified RESET did not retire");
 
       raw_symbols = {};
       raw_errors  = {};
@@ -1235,9 +1204,7 @@ package runctl_mgmt_env_pkg;
                            "comma-qualified STOP_RESET must not emit runctl");
       expect_no_new_upload(cfg.obs_timeout_cycles, "STOP_RESET must not upload");
       wait_for_csr_mask(CSR_STATUS, 32'h00FF_FF03, 32'h0000_0003, 64,
-                        "comma-qualified STOP_RESET did not retire while ready low");
-
-      runctl_ctl_vif.ready = 1'b1;
+                        "comma-qualified STOP_RESET did not retire");
 
       csr_read_once(CSR_STATUS, status_readdata);
       if (env.sb.runctl_count != 0 || env.sb.upload_count != 0) begin

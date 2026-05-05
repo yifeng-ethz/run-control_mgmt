@@ -9,47 +9,44 @@
 **Total:** 20 cases
 **Method:** All directed (D)
 
-These tests exercise boundary conditions for `runctl_mgmt_host`: timing corners on the `lvdspll_clk` datapath, backpressure held through multiple commands, 48-bit gts rollover, log FIFO near-full / near-empty, CDC phase sweeps between `mm_clk` and `lvdspll_clk`, and combinational races inside the CSR block. Every case names the exact timing condition under which the corner must be provoked. Clock frequency ratios and phase relationships are stated where CDC behavior is load-bearing.
+These tests exercise boundary conditions for `runctl_mgmt_host`: timing corners on the `lvdspll_clk` datapath, upload backpressure held through multiple commands, readyless runctl broadcast, 48-bit gts rollover, log FIFO near-full / near-empty, CDC phase sweeps between `mm_clk` and `lvdspll_clk`, and combinational races inside the CSR block. Every case names the exact timing condition under which the corner must be provoked. Clock frequency ratios and phase relationships are stated where CDC behavior is load-bearing.
 
 Default clock config unless stated otherwise: `lvdspll_clk = 125 MHz`, `mm_clk = 156.25 MHz`, asynchronous, free-running phase sweep across test seed.
 
 ---
 
-## E001_runctl_ready_held_low
+## E001_runctl_readyless_broadcast
 
 | Field | Value |
 |---|---|
-| ID | E001_runctl_ready_held_low |
-| Category | Downstream backpressure / recv FSM stall |
-| Goal | Confirm that `runctl_host` FSM holds in POSTING while `runctl_ready=0`, that `synclink_recv` blocks waiting for the handshake, and that exactly one transaction is emitted when ready releases. |
+| ID | E001_runctl_readyless_broadcast |
+| Category | Readyless runctl broadcast |
+| Goal | Confirm that `runctl_host` emits one valid beat and retires without any downstream ready handshake. |
 
 **Setup**
 
-- Reset complete, CSR defaults, `runctl_sink_agent` programmed to drive `runctl_ready=0` for 64 `lvdspll_clk` cycles after first observed `valid`.
+- Reset complete, CSR defaults, runctl monitor readyless.
 - Upload sink ready high, CSR idle, log FIFO empty.
 
 **Stimulus sequence**
 
 1. Send a single `CMD_RUN_SYNC` (0x11) byte via synclink at `lvdspll_clk` edge N.
-2. Observe `runctl_valid` assert within a few cycles.
-3. Hold `runctl_ready=0` for exactly 64 consecutive `lvdspll_clk` cycles after `valid` first asserts.
-4. Read STATUS at mm_clk during the stall (reads must not disturb the stall).
-5. Release `runctl_ready=1` on cycle 65.
-6. Read STATUS again once recv returns to IDLE.
+2. Observe `runctl_valid` assert for one cycle with data 0x11.
+3. Read STATUS around the broadcast.
+4. Read STATUS again once recv returns to IDLE.
 
 **Expected result**
 
-1. `runctl_valid` stays high for the entire 64-cycle stall; `runctl_data` stable at 0x11.
-2. STATUS.host_state_enc reports the POSTING encoding throughout the stall; STATUS.host_idle=0, STATUS.recv_idle=0.
-3. Exactly one handshake completes on cycle 65 (single-cycle `valid & ready`).
+1. `runctl_valid` asserts for one cycle; `runctl_data` is 0x11.
+2. STATUS does not remain in POSTING due to downstream backpressure.
+3. Exactly one broadcast beat is observed.
 4. RX_CMD_COUNT increments by 1 total; one log entry (4 sub-words) becomes available via LOG_POP.
 5. Post-stall STATUS reads recv_idle=1, host_idle=1.
 
 **Coverage bins hit**
 
 - `cov_cmd.cmd_byte_synclink[0x11]`
-- `cov_cross.C1[RUN_SYNC x held-low]`
-- `cov_cross.C2[latency=max x state=POSTING]`
+- `cov_cross.C2[synclink x emits]`
 
 **Pass criteria**
 
@@ -71,7 +68,7 @@ Default clock config unless stated otherwise: `lvdspll_clk = 125 MHz`, `mm_clk =
 **Setup**
 
 - `upload_sink_agent` programmed to drive `upload_ready=0` starting at the cycle before the first `upload_valid` and hold for 128 `lvdspll_clk` cycles.
-- runctl sink ready high.
+- runctl monitor readyless.
 
 **Stimulus sequence**
 
@@ -446,7 +443,7 @@ Default clock config unless stated otherwise: `lvdspll_clk = 125 MHz`, `mm_clk =
 
 **Setup**
 
-- runctl_sink ready high, monitor counts runctl beats.
+- runctl monitor readyless, monitor counts runctl beats.
 - Scoreboard transaction counter at 0 for runctl.
 
 **Stimulus sequence**
@@ -478,17 +475,17 @@ Default clock config unless stated otherwise: `lvdspll_clk = 125 MHz`, `mm_clk =
 
 ---
 
-## E012_runctl_ready_toggle_1cycle
+## E012_runctl_readyless_burst
 
 | Field | Value |
 |---|---|
-| ID | E012_runctl_ready_toggle_1cycle |
-| Category | 1-cycle ready toggle stress |
-| Goal | With `runctl_ready` toggling every `lvdspll_clk` cycle (50% duty, 1-cycle period), stream a long sequence of commands and confirm no drops, no duplicates, and bounded latency. |
+| ID | E012_runctl_readyless_burst |
+| Category | Readyless burst stress |
+| Goal | Stream a long sequence of readyless runctl commands and confirm no drops, no duplicates, and bounded latency. |
 
 **Setup**
 
-- `runctl_sink_agent` programmed to drive `ready` = alternating 0,1,0,1,... starting at reset exit, free-running.
+- Runctl monitor readyless.
 - Upload sink ready high.
 
 **Stimulus sequence**
@@ -499,7 +496,7 @@ Default clock config unless stated otherwise: `lvdspll_clk = 125 MHz`, `mm_clk =
 
 **Expected result**
 
-1. Every command handshake lands on a `ready=1` phase; the host FSM never skips.
+1. Every command produces one readyless broadcast beat; the host FSM never skips.
 2. RX_CMD_COUNT increments by exactly 256.
 3. All 256 runctl transactions observed in order.
 4. No log sub-words lost (rdusedw + previously popped = 256*4, modulo any LOG_POP during test).
@@ -529,7 +526,7 @@ Default clock config unless stated otherwise: `lvdspll_clk = 125 MHz`, `mm_clk =
 **Setup**
 
 - Reset, CSR idle. CONTROL default. mm/lvdspll clock ratio as default (156.25/125 MHz, async).
-- `runctl_sink_agent` adds a 32-cycle ready latency to lengthen the local_cmd busy window.
+- Runctl monitor is readyless; the test submits the second LOCAL_CMD during the mm/lvds toggle busy window.
 
 **Stimulus sequence**
 
@@ -805,24 +802,24 @@ Default clock config unless stated otherwise: `lvdspll_clk = 125 MHz`, `mm_clk =
 
 ---
 
-## E020_runctl_ready_max_latency
+## E020_runctl_no_ready_port
 
 | Field | Value |
 |---|---|
-| ID | E020_runctl_ready_max_latency |
-| Category | Max ready latency stress |
-| Goal | Apply the maximum supported `runctl_ready` latency (harness-defined, typically 1023 `lvdspll_clk` cycles) and confirm all commands eventually drain with no FSM hang. |
+| ID | E020_runctl_no_ready_port |
+| Category | Readyless interface elaboration |
+| Goal | Confirm the current RTL/wrappers/component expose no `aso_runctl_ready` port and still drain mixed commands without an FSM hang. |
 
 **Setup**
 
-- `runctl_sink_agent` configured for fixed ready latency = MAX.
+- Readyless runctl monitor.
 - Upload ready free.
 
 **Stimulus sequence**
 
 1. Send 8 mixed single-byte commands back-to-back on synclink.
 2. Watch recv/host FSM state via STATUS polling.
-3. Wait until STATUS.recv_idle=1 and STATUS.host_idle=1, with a watchdog of `8 * (MAX + 32)` lvdspll_clk cycles.
+3. Wait until STATUS.recv_idle=1 and STATUS.host_idle=1, with a short watchdog because no downstream-ready wait exists.
 4. Read RX_CMD_COUNT and LOG_STATUS.rdusedw.
 
 **Expected result**
@@ -853,18 +850,18 @@ Each row is self-contained (stimulus + expected in 1-2 sentences). Every case te
 
 | ID | Category | Stimulus | Expected |
 |----|----------|----------|----------|
-| E021_runctl_ready_low_1 | runctl backpressure | Send CMD_RUN_SYNC (0x11); hold `runctl_ready=0` for 1 lvdspll cycle after first `valid`, then release. | Handshake completes on cycle 2; RX_CMD_COUNT+=1; host FSM observed in HOST_POSTING (0x01) for exactly 1 cycle. |
-| E022_runctl_ready_low_16 | runctl backpressure | Send 0x11; hold `runctl_ready=0` for 16 lvdspll cycles then release. | Valid stable for 16 cycles; exactly one beat at cycle 17; RX_CMD_COUNT+=1; no duplicate beats. |
-| E023_runctl_ready_low_256 | runctl backpressure | Send 0x11; hold `runctl_ready=0` for 256 lvdspll cycles then release. | Same as E022 but over 256-cycle window; no FSM hang; recv_state_enc=RECV_LOGGING or RECV_CLEANUP observable via STATUS during stall. |
-| E024_runctl_ready_low_1024 | runctl backpressure | Send 0x11; hold `runctl_ready=0` for 1024 lvdspll cycles. | One beat on release; watchdog `> 1024+32` cycles; no log entry loss. |
-| E025_runctl_ready_low_10000 | runctl backpressure | Send 0x11; hold `runctl_ready=0` for 10000 lvdspll cycles. | One beat on release; no SVA firings; log_drop_count unchanged (log FIFO capacity unused). |
+| E021_runctl_readyless_single | readyless runctl | Send CMD_RUN_SYNC (0x11). | One valid beat; RX_CMD_COUNT+=1; no downstream-ready wait. |
+| E022_runctl_readyless_burst16 | readyless runctl | Send 16 x 0x11 back-to-back. | 16 readyless beats; RX_CMD_COUNT+=16; no duplicate beats. |
+| E023_runctl_readyless_burst256 | readyless runctl | Send 256 x 0x11 back-to-back. | 256 readyless beats; no FSM hang. |
+| E024_runctl_readyless_address_suppress | readyless runctl | Send ADDRESS 0x40 with payload. | FPGA_ADDRESS updates; no runctl beat. |
+| E025_runctl_readyless_after_wait | readyless runctl | Send 0x11, wait 10000 cycles, send 0x11 again. | Two total runctl beats; no SVA firings. |
 | E026_upload_ready_low_1 | upload backpressure | Send CMD_RUN_PREPARE 0x10 + 4B run_number=0x1; hold `upload_ready=0` for 1 cycle after `upload_valid` then release. | Exactly one ack packet (sop+eop), data[35:32] k-flag = RUN_START_ACK_SYMBOL (0xFE). |
 | E027_upload_ready_low_16 | upload backpressure | Same as E026 with 16-cycle hold. | Exactly one ack packet; upload FSM stable during stall. |
 | E028_upload_ready_low_64 | upload backpressure | Same with 64-cycle hold. | Single ack on release; RUN_NUMBER CSR updated. |
 | E029_upload_ready_low_256 | upload backpressure | Same with 256-cycle hold. | Single ack; no duplicate sop/eop; log entry present. |
 | E030_upload_ready_low_1024 | upload backpressure | Same with 1024-cycle hold. | Single ack; host/recv FSMs return to idle post-drain. |
 | E031_upload_ready_low_10000 | upload backpressure | Same with 10000-cycle hold. | Single ack; no SVA firings; no FSM hang. |
-| E032_upload_ready_low_end_run | upload backpressure | Send CMD_END_RUN (0x13); hold upload_ready=0 for 1024 cycles then release. | Exactly one ack packet with k-flag = RUN_END_ACK_SYMBOL (0xFD); runctl also emits 0x13 beat once runctl_ready high. |
+| E032_upload_ready_low_end_run | upload backpressure | Send CMD_END_RUN (0x13); hold upload_ready=0 for 1024 cycles then release. | Exactly one ack packet with k-flag = RUN_END_ACK_SYMBOL (0xFD); runctl emits a readyless 0x13 beat immediately. |
 | E033_log_fifo_rdusedw_1 | log FIFO near-empty | From empty, push exactly one 1-byte command that produces 4 sub-words then LOG_POP x3. | After pop x3, LOG_STATUS.rdusedw=1, rdempty=0; pop once more -> rdempty=1. |
 | E034_log_fifo_rdusedw_2 | log FIFO near-empty | Drive state to rdusedw=2 via push+partial-pop sequence; read LOG_STATUS. | rdusedw=2 observed; subsequent two LOG_POPs return correct sub-words in FIFO order. |
 | E035_log_fifo_rdusedw_63 | log FIFO boundary | Push 16 commands (64 sub-words) and LOG_POP once to reach rdusedw=63. | LOG_STATUS.rdusedw=63, rdempty=0, rdfull=0. |
@@ -891,7 +888,7 @@ Each row is self-contained (stimulus + expected in 1-2 sentences). Every case te
 | E056_gts_repeat_l_read | GTS snapshot repeatability | Two rapid AVMM reads of GTS_L with 0, 1, 2 mm_clk gaps between them. | Both reads succeed; waitrequest released each read; pair (L2, subsequent H) consistent. |
 | E057_soft_reset_during_rx_idle | soft_reset interleave | Pulse CONTROL.soft_reset while recv_state=RECV_IDLE (0x00). | recv/host return to IDLE; no log entry written; GTS counter unchanged. |
 | E058_soft_reset_during_rx_payload | soft_reset interleave | Send 0x10 header then hold valid=0; while recv_state=RECV_RX_PAYLOAD (0x01), pulse soft_reset. | Partial payload discarded; no log entry queued; no upload ack; STATUS.recv_idle=1 post-pulse. |
-| E059_soft_reset_during_logging | soft_reset interleave | Stall with runctl_ready=0 long enough to observe recv_state=RECV_LOGGING (0x02); pulse soft_reset. | recv returns to IDLE; partial log entry discarded; no torn entry; log_drop_count unchanged. |
+| E059_soft_reset_during_logging | soft_reset interleave | Force log-write/logging state with a test hook; pulse soft_reset. | recv returns to IDLE; partial log entry discarded; no torn entry; log_drop_count unchanged. |
 | E060_soft_reset_during_log_error | soft_reset interleave | Inject parity error to force recv_state=RECV_LOG_ERROR (0x03); pulse soft_reset same cycle. | recv returns to IDLE; RX_ERR_COUNT increment still coherent; no spurious runctl beat. |
 | E061_soft_reset_during_cleanup | soft_reset interleave | Drive recv_state=RECV_CLEANUP (0x04) via a completed command; pulse soft_reset mid-cleanup. | recv returns to IDLE; FSMs clean; next command processes normally. |
 | E062_soft_reset_gts_preserved | soft_reset GTS rule | Let GTS advance; pulse soft_reset; read GTS_L/GTS_H 8 mm_clk later. | GTS reading is higher than pre-pulse reading (GTS counter NOT reset by soft_reset). |
@@ -921,7 +918,7 @@ Each row is self-contained (stimulus + expected in 1-2 sentences). Every case te
 | E086_b2b_8 | back-to-back stream | Stream 8 x 0x11. | delta=8; 32 sub-words. |
 | E087_b2b_32 | back-to-back stream | Stream 32 x 0x11. | delta=32; 128 sub-words. |
 | E088_b2b_64 | back-to-back stream | Stream 64 x 0x11. | delta=64; 256 sub-words. |
-| E089_b2b_128 | back-to-back stream | Stream 128 x 0x11 with continuous runctl_ready. | delta=128; 512 sub-words; no drops. |
+| E089_b2b_128 | back-to-back stream | Stream 128 x 0x11 on readyless runctl. | delta=128; 512 sub-words; no drops. |
 | E090_b2b_256 | back-to-back stream | Stream 256 x 0x11. | delta=256; 1024 sub-words -> rdusedw hits full boundary; log_drop_count=0. |
 | E091_mixed_rr_10 | mixed round-robin | Round-robin through all 10 command bytes {0x10,0x11,0x12,0x13,0x14,0x30,0x31,0x32,0x33,0x40} once (10 total, payloads from LCG PRNG). | RX_CMD_COUNT+=10 (or 9 if ADDRESS is counted separately in RTL, verify); log entries for each; 2 upload acks (0x10,0x13); zero runctl beats for 0x40 only. |
 | E092_mixed_rr_100 | mixed round-robin | Round-robin all 10 bytes x 10 iterations = 100 commands. | RX_CMD_COUNT delta=100; scoreboard agrees on all runctl beats and ack packets; log entries match. |
