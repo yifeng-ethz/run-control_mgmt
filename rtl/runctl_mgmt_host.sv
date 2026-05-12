@@ -203,7 +203,8 @@ module runctl_mgmt_host #(
     // ============================================================
     // Binary-to-gray on source, 2FF sync, gray-to-binary on dest.
     logic [47:0] gts_gray_lvds;
-    logic [47:0] gts_gray_mm_ff0, gts_gray_mm_ff1;
+    (* async_reg = "true", preserve = "true" *) logic [47:0] gts_gray_mm_ff0;
+    (* async_reg = "true", preserve = "true" *) logic [47:0] gts_gray_mm_ff1;
     logic [47:0] gts_mm_binary;
 
     always_ff @(posedge lvdspll_clk) begin
@@ -234,7 +235,7 @@ module runctl_mgmt_host #(
     // Soft-reset toggle CDC (mm → lvds)
     // ============================================================
     logic        soft_reset_req_mm;    // toggle
-    logic [1:0]  soft_reset_req_lvds_sync;
+    (* async_reg = "true", preserve = "true" *) logic [1:0]  soft_reset_req_lvds_sync;
     logic        soft_reset_req_lvds_seen;
     logic        soft_reset_pulse_lvds;
 
@@ -261,7 +262,8 @@ module runctl_mgmt_host #(
     // CONTROL mask bits CDC (mm → lvds), direct 2FF (near-static)
     // ============================================================
     logic       rst_mask_dp_mm, rst_mask_ct_mm;
-    logic [1:0] rst_mask_dp_lvds_sync, rst_mask_ct_lvds_sync;
+    (* async_reg = "true", preserve = "true" *) logic [1:0] rst_mask_dp_lvds_sync;
+    (* async_reg = "true", preserve = "true" *) logic [1:0] rst_mask_ct_lvds_sync;
     logic       rst_mask_dp_lvds, rst_mask_ct_lvds;
 
     always_ff @(posedge lvdspll_clk) begin
@@ -281,13 +283,14 @@ module runctl_mgmt_host #(
     // ============================================================
     logic [31:0] local_cmd_word_mm;
     logic        local_cmd_req_mm;             // toggle
-    logic [1:0]  local_cmd_ack_mm_sync;
+    (* async_reg = "true", preserve = "true" *) logic [1:0]  local_cmd_ack_mm_sync;
     logic        local_cmd_busy_mm;
 
-    logic [1:0]  local_cmd_req_lvds_sync;
+    (* async_reg = "true", preserve = "true" *) logic [1:0]  local_cmd_req_lvds_sync;
     logic        local_cmd_req_lvds_seen;
     logic        local_cmd_ack_lvds;           // toggle
-    logic [31:0] local_cmd_word_lvds_sync_q0, local_cmd_word_lvds_sync_q1;
+    (* async_reg = "true", preserve = "true" *) logic [31:0] local_cmd_word_lvds_sync_q0;
+    (* async_reg = "true", preserve = "true" *) logic [31:0] local_cmd_word_lvds_sync_q1;
     logic        local_cmd_pending_lvds;
     logic        local_cmd_consume_lvds;
     logic [31:0] local_cmd_word_lvds;
@@ -445,8 +448,9 @@ module runctl_mgmt_host #(
     logic        pipe_r2h_start, pipe_r2h_done;
 
     // Snapshot update toggle (lvds→mm notification)
+    logic        snap_capture_lvds;    // pulse
     logic        snap_update_lvds;     // toggle
-    logic [1:0]  snap_update_mm_sync;
+    (* async_reg = "true", preserve = "true" *) logic [1:0]  snap_update_mm_sync;
     logic        snap_update_mm_seen;
 
     // Saturating event strobes
@@ -474,7 +478,7 @@ module runctl_mgmt_host #(
             recv_payload_cnt        <= 4'd0;
             synclink_idle_armed     <= 1'b0;
             pipe_r2h_start          <= 1'b0;
-            snap_update_lvds        <= 1'b0;
+            snap_capture_lvds       <= 1'b0;
             local_cmd_consume_lvds  <= 1'b0;
             log_fifo_wrreq          <= 1'b0;
             log_fifo_data           <= 128'd0;
@@ -488,6 +492,7 @@ module runctl_mgmt_host #(
             log_fifo_wrreq         <= 1'b0;
             log_fifo_data          <= 128'd0;
             local_cmd_consume_lvds <= 1'b0;
+            snap_capture_lvds      <= 1'b0;
             ev_cmd_accepted        <= 1'b0;
             ev_rx_error            <= 1'b0;
             ev_log_drop            <= 1'b0;
@@ -616,7 +621,7 @@ module runctl_mgmt_host #(
                     // does not fan out and is masked directly to CLEANUP).
                     if (recv_run_command == CMD_ADDRESS) begin
                         pipe_r2h_start   <= 1'b0;
-                        snap_update_lvds <= ~snap_update_lvds;
+                        snap_capture_lvds<= 1'b1;
                         ev_cmd_accepted  <= 1'b1;
                         recv_state       <= RECV_CLEANUP;
                     end else if (!pipe_r2h_start && !pipe_r2h_done) begin
@@ -641,7 +646,7 @@ module runctl_mgmt_host #(
                         end else begin
                             ev_log_drop <= 1'b1;
                         end
-                        snap_update_lvds <= ~snap_update_lvds;
+                        snap_capture_lvds<= 1'b1;
                         ev_cmd_accepted  <= 1'b1;
                         recv_state       <= RECV_CLEANUP;
                     end
@@ -723,10 +728,19 @@ module runctl_mgmt_host #(
     end
 
     // STATUS helpers
-    assign recv_idle_lvds  = (recv_state == RECV_IDLE);
-    assign host_idle_lvds  = (host_state == HOST_IDLE_ST);
-    assign recv_state_lvds = recv_state;
-    assign host_state_lvds = host_state;
+    always_ff @(posedge lvdspll_clk) begin
+        if (lvdspll_reset) begin
+            recv_idle_lvds   <= 1'b1;
+            host_idle_lvds   <= 1'b1;
+            recv_state_lvds  <= RECV_IDLE;
+            host_state_lvds  <= HOST_IDLE_ST;
+        end else begin
+            recv_idle_lvds   <= (recv_state == RECV_IDLE);
+            host_idle_lvds   <= (host_state == HOST_IDLE_ST);
+            recv_state_lvds  <= recv_state;
+            host_state_lvds  <= host_state;
+        end
+    end
 
     // ============================================================
     // rc_pkt_upload FSM (lvdspll_clk)
@@ -823,8 +837,15 @@ module runctl_mgmt_host #(
     assign dp_hard_reset      = dp_hard_reset_q;
     assign ct_hard_reset      = ct_hard_reset_q;
     assign ext_hard_reset     = ext_hard_reset_q;
-    assign dp_hard_reset_raw  = dp_hard_reset_q;
-    assign ct_hard_reset_raw  = ct_hard_reset_q;
+    always_ff @(posedge lvdspll_clk) begin
+        if (lvdspll_reset) begin
+            dp_hard_reset_raw <= 1'b0;
+            ct_hard_reset_raw <= 1'b0;
+        end else begin
+            dp_hard_reset_raw <= dp_hard_reset_q;
+            ct_hard_reset_raw <= ct_hard_reset_q;
+        end
+    end
 
     // ============================================================
     // Snapshot register bank (lvds) & handshake to mm
@@ -842,6 +863,7 @@ module runctl_mgmt_host #(
 
     always_ff @(posedge lvdspll_clk) begin
         if (lvdspll_reset) begin
+            snap_update_lvds          <= 1'b0;
             snap_last_cmd_lvds        <= 8'h00;
             snap_run_number_lvds      <= 32'd0;
             snap_reset_assert_lvds    <= 16'd0;
@@ -850,7 +872,8 @@ module runctl_mgmt_host #(
             snap_fpga_addr_valid_lvds <= 1'b0;
             snap_recv_ts_lvds         <= 48'd0;
             snap_exec_ts_lvds         <= 48'd0;
-        end else if (ev_cmd_accepted) begin
+        end else if (snap_capture_lvds) begin
+            snap_update_lvds        <= ~snap_update_lvds;
             snap_last_cmd_lvds      <= recv_run_command;
             snap_recv_ts_lvds       <= recv_timestamp;
             snap_exec_ts_lvds       <= host_exec_ts;
@@ -868,6 +891,14 @@ module runctl_mgmt_host #(
     end
 
     // mm-side shadow registers
+    (* async_reg = "true", preserve = "true" *) logic [7:0]  snap_last_cmd_mm_q0, snap_last_cmd_mm_q1;
+    (* async_reg = "true", preserve = "true" *) logic [31:0] snap_run_number_mm_q0, snap_run_number_mm_q1;
+    (* async_reg = "true", preserve = "true" *) logic [15:0] snap_reset_assert_mm_q0, snap_reset_assert_mm_q1;
+    (* async_reg = "true", preserve = "true" *) logic [15:0] snap_reset_release_mm_q0, snap_reset_release_mm_q1;
+    (* async_reg = "true", preserve = "true" *) logic [15:0] snap_fpga_addr_mm_q0, snap_fpga_addr_mm_q1;
+    (* async_reg = "true", preserve = "true" *) logic        snap_fpga_addr_valid_mm_q0, snap_fpga_addr_valid_mm_q1;
+    (* async_reg = "true", preserve = "true" *) logic [47:0] snap_recv_ts_mm_q0, snap_recv_ts_mm_q1;
+    (* async_reg = "true", preserve = "true" *) logic [47:0] snap_exec_ts_mm_q0, snap_exec_ts_mm_q1;
     logic [7:0]  shadow_last_cmd;
     logic [31:0] shadow_run_number;
     logic [15:0] shadow_reset_assert, shadow_reset_release;
@@ -879,6 +910,22 @@ module runctl_mgmt_host #(
         if (mm_reset) begin
             snap_update_mm_sync    <= 2'b00;
             snap_update_mm_seen    <= 1'b0;
+            snap_last_cmd_mm_q0     <= 8'h00;
+            snap_last_cmd_mm_q1     <= 8'h00;
+            snap_run_number_mm_q0   <= 32'd0;
+            snap_run_number_mm_q1   <= 32'd0;
+            snap_reset_assert_mm_q0 <= 16'd0;
+            snap_reset_assert_mm_q1 <= 16'd0;
+            snap_reset_release_mm_q0<= 16'd0;
+            snap_reset_release_mm_q1<= 16'd0;
+            snap_fpga_addr_mm_q0    <= 16'd0;
+            snap_fpga_addr_mm_q1    <= 16'd0;
+            snap_fpga_addr_valid_mm_q0 <= 1'b0;
+            snap_fpga_addr_valid_mm_q1 <= 1'b0;
+            snap_recv_ts_mm_q0      <= 48'd0;
+            snap_recv_ts_mm_q1      <= 48'd0;
+            snap_exec_ts_mm_q0      <= 48'd0;
+            snap_exec_ts_mm_q1      <= 48'd0;
             shadow_last_cmd        <= 8'h00;
             shadow_run_number      <= 32'd0;
             shadow_reset_assert    <= 16'd0;
@@ -889,16 +936,32 @@ module runctl_mgmt_host #(
             shadow_exec_ts         <= 48'd0;
         end else begin
             snap_update_mm_sync <= {snap_update_mm_sync[0], snap_update_lvds};
+            snap_last_cmd_mm_q0      <= snap_last_cmd_lvds;
+            snap_last_cmd_mm_q1      <= snap_last_cmd_mm_q0;
+            snap_run_number_mm_q0    <= snap_run_number_lvds;
+            snap_run_number_mm_q1    <= snap_run_number_mm_q0;
+            snap_reset_assert_mm_q0  <= snap_reset_assert_lvds;
+            snap_reset_assert_mm_q1  <= snap_reset_assert_mm_q0;
+            snap_reset_release_mm_q0 <= snap_reset_release_lvds;
+            snap_reset_release_mm_q1 <= snap_reset_release_mm_q0;
+            snap_fpga_addr_mm_q0     <= snap_fpga_addr_lvds;
+            snap_fpga_addr_mm_q1     <= snap_fpga_addr_mm_q0;
+            snap_fpga_addr_valid_mm_q0 <= snap_fpga_addr_valid_lvds;
+            snap_fpga_addr_valid_mm_q1 <= snap_fpga_addr_valid_mm_q0;
+            snap_recv_ts_mm_q0       <= snap_recv_ts_lvds;
+            snap_recv_ts_mm_q1       <= snap_recv_ts_mm_q0;
+            snap_exec_ts_mm_q0       <= snap_exec_ts_lvds;
+            snap_exec_ts_mm_q1       <= snap_exec_ts_mm_q0;
             if (snap_update_mm_sync[1] != snap_update_mm_seen) begin
                 snap_update_mm_seen    <= snap_update_mm_sync[1];
-                shadow_last_cmd        <= snap_last_cmd_lvds;
-                shadow_run_number      <= snap_run_number_lvds;
-                shadow_reset_assert    <= snap_reset_assert_lvds;
-                shadow_reset_release   <= snap_reset_release_lvds;
-                shadow_fpga_addr       <= snap_fpga_addr_lvds;
-                shadow_fpga_addr_valid <= snap_fpga_addr_valid_lvds;
-                shadow_recv_ts         <= snap_recv_ts_lvds;
-                shadow_exec_ts         <= snap_exec_ts_lvds;
+                shadow_last_cmd        <= snap_last_cmd_mm_q1;
+                shadow_run_number      <= snap_run_number_mm_q1;
+                shadow_reset_assert    <= snap_reset_assert_mm_q1;
+                shadow_reset_release   <= snap_reset_release_mm_q1;
+                shadow_fpga_addr       <= snap_fpga_addr_mm_q1;
+                shadow_fpga_addr_valid <= snap_fpga_addr_valid_mm_q1;
+                shadow_recv_ts         <= snap_recv_ts_mm_q1;
+                shadow_exec_ts         <= snap_exec_ts_mm_q1;
             end
         end
     end
@@ -908,9 +971,9 @@ module runctl_mgmt_host #(
     // ============================================================
     logic [31:0] rx_cmd_count_lvds, rx_err_count_lvds, log_drop_count_lvds;
     logic [31:0] rx_cmd_gray_lvds, rx_err_gray_lvds, log_drop_gray_lvds;
-    logic [31:0] rx_cmd_gray_ff0, rx_cmd_gray_ff1;
-    logic [31:0] rx_err_gray_ff0, rx_err_gray_ff1;
-    logic [31:0] log_drop_gray_ff0, log_drop_gray_ff1;
+    (* async_reg = "true", preserve = "true" *) logic [31:0] rx_cmd_gray_ff0, rx_cmd_gray_ff1;
+    (* async_reg = "true", preserve = "true" *) logic [31:0] rx_err_gray_ff0, rx_err_gray_ff1;
+    (* async_reg = "true", preserve = "true" *) logic [31:0] log_drop_gray_ff0, log_drop_gray_ff1;
     logic [31:0] rx_cmd_count_mm, rx_err_count_mm;
 
     always_ff @(posedge lvdspll_clk) begin
@@ -969,27 +1032,40 @@ module runctl_mgmt_host #(
     // ============================================================
     // Status single-bit 2FF sync (lvds → mm)
     // ============================================================
+    (* async_reg = "true", preserve = "true" *) logic [1:0] recv_idle_sync_attr, host_idle_sync_attr;
+    (* async_reg = "true", preserve = "true" *) logic [1:0] dp_hreset_sync_attr, ct_hreset_sync_attr;
+    (* async_reg = "true", preserve = "true" *) logic [15:0] recv_state_sync_attr_q0, recv_state_sync_attr_q1;
+    (* async_reg = "true", preserve = "true" *) logic [15:0] host_state_sync_attr_q0, host_state_sync_attr_q1;
+
     always_ff @(posedge mm_clk) begin
         if (mm_reset) begin
-            recv_idle_sync     <= 2'b00;
-            host_idle_sync     <= 2'b00;
-            dp_hreset_sync     <= 2'b00;
-            ct_hreset_sync     <= 2'b00;
-            recv_state_sync_q0 <= 16'd0;
-            recv_state_sync_q1 <= 16'd0;
-            host_state_sync_q0 <= 16'd0;
-            host_state_sync_q1 <= 16'd0;
+            recv_idle_sync_attr     <= 2'b00;
+            host_idle_sync_attr     <= 2'b00;
+            dp_hreset_sync_attr     <= 2'b00;
+            ct_hreset_sync_attr     <= 2'b00;
+            recv_state_sync_attr_q0 <= 16'd0;
+            recv_state_sync_attr_q1 <= 16'd0;
+            host_state_sync_attr_q0 <= 16'd0;
+            host_state_sync_attr_q1 <= 16'd0;
         end else begin
-            recv_idle_sync <= {recv_idle_sync[0], recv_idle_lvds};
-            host_idle_sync <= {host_idle_sync[0], host_idle_lvds};
-            dp_hreset_sync <= {dp_hreset_sync[0], dp_hard_reset_raw};
-            ct_hreset_sync <= {ct_hreset_sync[0], ct_hard_reset_raw};
-            recv_state_sync_q0 <= {8'h00, recv_state_lvds};
-            recv_state_sync_q1 <= recv_state_sync_q0;
-            host_state_sync_q0 <= {8'h00, host_state_lvds};
-            host_state_sync_q1 <= host_state_sync_q0;
+            recv_idle_sync_attr <= {recv_idle_sync_attr[0], recv_idle_lvds};
+            host_idle_sync_attr <= {host_idle_sync_attr[0], host_idle_lvds};
+            dp_hreset_sync_attr <= {dp_hreset_sync_attr[0], dp_hard_reset_raw};
+            ct_hreset_sync_attr <= {ct_hreset_sync_attr[0], ct_hard_reset_raw};
+            recv_state_sync_attr_q0 <= {8'h00, recv_state_lvds};
+            recv_state_sync_attr_q1 <= recv_state_sync_attr_q0;
+            host_state_sync_attr_q0 <= {8'h00, host_state_lvds};
+            host_state_sync_attr_q1 <= host_state_sync_attr_q0;
         end
     end
+    assign recv_idle_sync     = recv_idle_sync_attr;
+    assign host_idle_sync     = host_idle_sync_attr;
+    assign dp_hreset_sync     = dp_hreset_sync_attr;
+    assign ct_hreset_sync     = ct_hreset_sync_attr;
+    assign recv_state_sync_q0 = recv_state_sync_attr_q0;
+    assign recv_state_sync_q1 = recv_state_sync_attr_q1;
+    assign host_state_sync_q0 = host_state_sync_attr_q0;
+    assign host_state_sync_q1 = host_state_sync_attr_q1;
 
     // ============================================================
     // Logging FIFO instantiation (dcfifo_mixed_widths)
