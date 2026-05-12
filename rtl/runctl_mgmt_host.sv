@@ -15,9 +15,12 @@
 // mailbox is replaced by a word-addressed CSR block with an identity header.
 //
 // Author  : Yifeng Wang (yifenwan@phys.ethz.ch)
-// Version : 26.3.0
-// Date    : 20260505
-// Change  : 26.3.0 — make the runctl fanout stream readyless so decoded
+// Version : 26.3.1
+// Date    : 20260513
+// Change  : 26.3.1 — gate the LVDS-to-MM snapshot CSR bank with the
+//                     synchronized update toggle and constrain the async
+//                     capture path explicitly.
+//           26.3.0 — make the runctl fanout stream readyless so decoded
 //                     commands broadcast without downstream backpressure.
 //           26.2.6 — make ext_hard_reset a bounded pulse so the exported
 //                     subsystem reset cannot hold the LVDS/upload response
@@ -63,9 +66,9 @@ module runctl_mgmt_host #(
     parameter logic [31:0] IP_UID         = 32'h5243_4D48, // ASCII "RCMH"
     parameter logic [7:0]  VERSION_MAJOR  = 8'd26,
     parameter logic [7:0]  VERSION_MINOR  = 8'd3,
-    parameter logic [3:0]  VERSION_PATCH  = 4'd0,
-    parameter logic [11:0] BUILD          = 12'h505,     // MMDD = 0505
-    parameter logic [31:0] VERSION_DATE   = 32'h2026_0505,
+    parameter logic [3:0]  VERSION_PATCH  = 4'd1,
+    parameter logic [11:0] BUILD          = 12'h513,     // MMDD = 0513
+    parameter logic [31:0] VERSION_DATE   = 32'h2026_0513,
     parameter logic [31:0] VERSION_GIT    = 32'h0,
     parameter logic [31:0] INSTANCE_ID    = 32'h0,
     parameter logic [15:0] EXT_HARD_RESET_PULSE_CYCLES = 16'd16384
@@ -450,8 +453,14 @@ module runctl_mgmt_host #(
     // Snapshot update toggle (lvds→mm notification)
     logic        snap_capture_lvds;    // pulse
     logic        snap_update_lvds;     // toggle
-    (* async_reg = "true", preserve = "true" *) logic [1:0]  snap_update_mm_sync;
+    logic        snap_update_pending_lvds;
+    logic [2:0]  snap_update_hold_count_lvds;
+    (* async_reg = "true", preserve = "true" *) logic snap_update_mm_q0;
+    (* async_reg = "true", preserve = "true" *) logic snap_update_mm_q1;
     logic        snap_update_mm_seen;
+    logic        snap_update_mm_pulse;
+
+    localparam logic [2:0] SNAP_UPDATE_HOLD_CYCLES = 3'd5;
 
     // Saturating event strobes
     logic        ev_cmd_accepted;
@@ -864,6 +873,8 @@ module runctl_mgmt_host #(
     always_ff @(posedge lvdspll_clk) begin
         if (lvdspll_reset) begin
             snap_update_lvds          <= 1'b0;
+            snap_update_pending_lvds  <= 1'b0;
+            snap_update_hold_count_lvds <= 3'd0;
             snap_last_cmd_lvds        <= 8'h00;
             snap_run_number_lvds      <= 32'd0;
             snap_reset_assert_lvds    <= 16'd0;
@@ -873,10 +884,11 @@ module runctl_mgmt_host #(
             snap_recv_ts_lvds         <= 48'd0;
             snap_exec_ts_lvds         <= 48'd0;
         end else if (snap_capture_lvds) begin
-            snap_update_lvds        <= ~snap_update_lvds;
-            snap_last_cmd_lvds      <= recv_run_command;
-            snap_recv_ts_lvds       <= recv_timestamp;
-            snap_exec_ts_lvds       <= host_exec_ts;
+            snap_update_pending_lvds    <= 1'b1;
+            snap_update_hold_count_lvds <= SNAP_UPDATE_HOLD_CYCLES;
+            snap_last_cmd_lvds          <= recv_run_command;
+            snap_recv_ts_lvds           <= recv_timestamp;
+            snap_exec_ts_lvds           <= host_exec_ts;
             unique case (recv_run_command)
                 CMD_RUN_PREPARE: snap_run_number_lvds    <= recv_run_number;
                 CMD_RESET:       snap_reset_assert_lvds  <= recv_reset_assert_mask;
@@ -887,81 +899,54 @@ module runctl_mgmt_host #(
                 end
                 default: ;
             endcase
+        end else if (snap_update_pending_lvds) begin
+            if (snap_update_hold_count_lvds == 3'd0) begin
+                snap_update_lvds         <= ~snap_update_lvds;
+                snap_update_pending_lvds <= 1'b0;
+            end else begin
+                snap_update_hold_count_lvds <= snap_update_hold_count_lvds - 3'd1;
+            end
         end
     end
 
     // mm-side shadow registers
-    (* async_reg = "true", preserve = "true" *) logic [7:0]  snap_last_cmd_mm_q0, snap_last_cmd_mm_q1;
-    (* async_reg = "true", preserve = "true" *) logic [31:0] snap_run_number_mm_q0, snap_run_number_mm_q1;
-    (* async_reg = "true", preserve = "true" *) logic [15:0] snap_reset_assert_mm_q0, snap_reset_assert_mm_q1;
-    (* async_reg = "true", preserve = "true" *) logic [15:0] snap_reset_release_mm_q0, snap_reset_release_mm_q1;
-    (* async_reg = "true", preserve = "true" *) logic [15:0] snap_fpga_addr_mm_q0, snap_fpga_addr_mm_q1;
-    (* async_reg = "true", preserve = "true" *) logic        snap_fpga_addr_valid_mm_q0, snap_fpga_addr_valid_mm_q1;
-    (* async_reg = "true", preserve = "true" *) logic [47:0] snap_recv_ts_mm_q0, snap_recv_ts_mm_q1;
-    (* async_reg = "true", preserve = "true" *) logic [47:0] snap_exec_ts_mm_q0, snap_exec_ts_mm_q1;
-    logic [7:0]  shadow_last_cmd;
-    logic [31:0] shadow_run_number;
-    logic [15:0] shadow_reset_assert, shadow_reset_release;
-    logic [15:0] shadow_fpga_addr;
-    logic        shadow_fpga_addr_valid;
-    logic [47:0] shadow_recv_ts, shadow_exec_ts;
+    (* preserve = "true" *) logic [7:0]  snap_last_cmd_mm_q0;
+    (* preserve = "true" *) logic [31:0] snap_run_number_mm_q0;
+    (* preserve = "true" *) logic [15:0] snap_reset_assert_mm_q0;
+    (* preserve = "true" *) logic [15:0] snap_reset_release_mm_q0;
+    (* preserve = "true" *) logic [15:0] snap_fpga_addr_mm_q0;
+    (* preserve = "true" *) logic        snap_fpga_addr_valid_mm_q0;
+    (* preserve = "true" *) logic [47:0] snap_recv_ts_mm_q0;
+    (* preserve = "true" *) logic [47:0] snap_exec_ts_mm_q0;
+
+    assign snap_update_mm_pulse = (snap_update_mm_q1 != snap_update_mm_seen);
 
     always_ff @(posedge mm_clk) begin
         if (mm_reset) begin
-            snap_update_mm_sync    <= 2'b00;
-            snap_update_mm_seen    <= 1'b0;
+            snap_update_mm_q0       <= 1'b0;
+            snap_update_mm_q1       <= 1'b0;
+            snap_update_mm_seen     <= 1'b0;
             snap_last_cmd_mm_q0     <= 8'h00;
-            snap_last_cmd_mm_q1     <= 8'h00;
             snap_run_number_mm_q0   <= 32'd0;
-            snap_run_number_mm_q1   <= 32'd0;
             snap_reset_assert_mm_q0 <= 16'd0;
-            snap_reset_assert_mm_q1 <= 16'd0;
             snap_reset_release_mm_q0<= 16'd0;
-            snap_reset_release_mm_q1<= 16'd0;
             snap_fpga_addr_mm_q0    <= 16'd0;
-            snap_fpga_addr_mm_q1    <= 16'd0;
             snap_fpga_addr_valid_mm_q0 <= 1'b0;
-            snap_fpga_addr_valid_mm_q1 <= 1'b0;
             snap_recv_ts_mm_q0      <= 48'd0;
-            snap_recv_ts_mm_q1      <= 48'd0;
             snap_exec_ts_mm_q0      <= 48'd0;
-            snap_exec_ts_mm_q1      <= 48'd0;
-            shadow_last_cmd        <= 8'h00;
-            shadow_run_number      <= 32'd0;
-            shadow_reset_assert    <= 16'd0;
-            shadow_reset_release   <= 16'd0;
-            shadow_fpga_addr       <= 16'd0;
-            shadow_fpga_addr_valid <= 1'b0;
-            shadow_recv_ts         <= 48'd0;
-            shadow_exec_ts         <= 48'd0;
         end else begin
-            snap_update_mm_sync <= {snap_update_mm_sync[0], snap_update_lvds};
-            snap_last_cmd_mm_q0      <= snap_last_cmd_lvds;
-            snap_last_cmd_mm_q1      <= snap_last_cmd_mm_q0;
-            snap_run_number_mm_q0    <= snap_run_number_lvds;
-            snap_run_number_mm_q1    <= snap_run_number_mm_q0;
-            snap_reset_assert_mm_q0  <= snap_reset_assert_lvds;
-            snap_reset_assert_mm_q1  <= snap_reset_assert_mm_q0;
-            snap_reset_release_mm_q0 <= snap_reset_release_lvds;
-            snap_reset_release_mm_q1 <= snap_reset_release_mm_q0;
-            snap_fpga_addr_mm_q0     <= snap_fpga_addr_lvds;
-            snap_fpga_addr_mm_q1     <= snap_fpga_addr_mm_q0;
-            snap_fpga_addr_valid_mm_q0 <= snap_fpga_addr_valid_lvds;
-            snap_fpga_addr_valid_mm_q1 <= snap_fpga_addr_valid_mm_q0;
-            snap_recv_ts_mm_q0       <= snap_recv_ts_lvds;
-            snap_recv_ts_mm_q1       <= snap_recv_ts_mm_q0;
-            snap_exec_ts_mm_q0       <= snap_exec_ts_lvds;
-            snap_exec_ts_mm_q1       <= snap_exec_ts_mm_q0;
-            if (snap_update_mm_sync[1] != snap_update_mm_seen) begin
-                snap_update_mm_seen    <= snap_update_mm_sync[1];
-                shadow_last_cmd        <= snap_last_cmd_mm_q1;
-                shadow_run_number      <= snap_run_number_mm_q1;
-                shadow_reset_assert    <= snap_reset_assert_mm_q1;
-                shadow_reset_release   <= snap_reset_release_mm_q1;
-                shadow_fpga_addr       <= snap_fpga_addr_mm_q1;
-                shadow_fpga_addr_valid <= snap_fpga_addr_valid_mm_q1;
-                shadow_recv_ts         <= snap_recv_ts_mm_q1;
-                shadow_exec_ts         <= snap_exec_ts_mm_q1;
+            snap_update_mm_q0   <= snap_update_lvds;
+            snap_update_mm_q1   <= snap_update_mm_q0;
+            snap_update_mm_seen <= snap_update_mm_q1;
+            if (snap_update_mm_pulse) begin
+                snap_last_cmd_mm_q0        <= snap_last_cmd_lvds;
+                snap_run_number_mm_q0      <= snap_run_number_lvds;
+                snap_reset_assert_mm_q0    <= snap_reset_assert_lvds;
+                snap_reset_release_mm_q0   <= snap_reset_release_lvds;
+                snap_fpga_addr_mm_q0       <= snap_fpga_addr_lvds;
+                snap_fpga_addr_valid_mm_q0 <= snap_fpga_addr_valid_lvds;
+                snap_recv_ts_mm_q0         <= snap_recv_ts_lvds;
+                snap_exec_ts_mm_q0         <= snap_exec_ts_lvds;
             end
         end
     end
@@ -1212,18 +1197,20 @@ module runctl_mgmt_host #(
                                                 host_idle_sync[1],          // [1]
                                                 recv_idle_sync[1]           // [0]
                                             };
-                            CSR_LAST_CMD:   avs_csr_readdata <= {shadow_fpga_addr, 8'd0,
-                                                                shadow_last_cmd};
+                            CSR_LAST_CMD:   avs_csr_readdata <= {snap_fpga_addr_mm_q0, 8'd0,
+                                                                snap_last_cmd_mm_q0};
                             CSR_SCRATCH:    avs_csr_readdata <= csr_scratch;
-                            CSR_RUN_NUMBER: avs_csr_readdata <= shadow_run_number;
-                            CSR_RESET_MASK: avs_csr_readdata <= {shadow_reset_release,
-                                                                shadow_reset_assert};
-                            CSR_FPGA_ADDRESS: avs_csr_readdata <= {shadow_fpga_addr_valid,
-                                                                15'd0, shadow_fpga_addr};
-                            CSR_RECV_TS_L:  avs_csr_readdata <= shadow_recv_ts[31:0];
-                            CSR_RECV_TS_H:  avs_csr_readdata <= {16'd0, shadow_recv_ts[47:32]};
-                            CSR_EXEC_TS_L:  avs_csr_readdata <= shadow_exec_ts[31:0];
-                            CSR_EXEC_TS_H:  avs_csr_readdata <= {16'd0, shadow_exec_ts[47:32]};
+                            CSR_RUN_NUMBER: avs_csr_readdata <= snap_run_number_mm_q0;
+                            CSR_RESET_MASK: avs_csr_readdata <= {snap_reset_release_mm_q0,
+                                                                snap_reset_assert_mm_q0};
+                            CSR_FPGA_ADDRESS: avs_csr_readdata <= {snap_fpga_addr_valid_mm_q0,
+                                                                15'd0, snap_fpga_addr_mm_q0};
+                            CSR_RECV_TS_L:  avs_csr_readdata <= snap_recv_ts_mm_q0[31:0];
+                            CSR_RECV_TS_H:  avs_csr_readdata <= {16'd0,
+                                                                snap_recv_ts_mm_q0[47:32]};
+                            CSR_EXEC_TS_L:  avs_csr_readdata <= snap_exec_ts_mm_q0[31:0];
+                            CSR_EXEC_TS_H:  avs_csr_readdata <= {16'd0,
+                                                                snap_exec_ts_mm_q0[47:32]};
                             CSR_GTS_L: begin
                                 avs_csr_readdata <= gts_mm_binary[31:0];
                                 gts_h_shadow     <= {16'd0, gts_mm_binary[47:32]};

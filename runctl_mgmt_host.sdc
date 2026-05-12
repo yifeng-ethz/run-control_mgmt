@@ -20,6 +20,17 @@ proc rcmh_get_registers_any {patterns} {
     return $nodes
 }
 
+proc rcmh_get_keepers_any {patterns} {
+    set nodes [get_keepers -nowarn __rcmh_no_match__]
+    foreach pattern $patterns {
+        set matches [get_keepers -nowarn $pattern]
+        if {[get_collection_size $matches] > 0} {
+            set nodes [add_to_collection $nodes $matches]
+        }
+    }
+    return $nodes
+}
+
 proc rcmh_node_patterns {leaf_name} {
     return [list \
         "runctl_mgmt_host:*|$leaf_name" \
@@ -34,6 +45,13 @@ proc rcmh_state_patterns {state_name} {
 
 proc rcmh_apply_false_path_pair {from_nodes to_nodes} {
     if {[get_collection_size $from_nodes] > 0 && [get_collection_size $to_nodes] > 0} {
+        set_false_path -from $from_nodes -to $to_nodes
+    }
+}
+
+proc rcmh_apply_async_capture_pair {from_nodes to_nodes} {
+    if {[get_collection_size $from_nodes] > 0 && [get_collection_size $to_nodes] > 0} {
+        set_max_skew -from $from_nodes -to $to_nodes 2.000
         set_false_path -from $from_nodes -to $to_nodes
     }
 }
@@ -67,24 +85,26 @@ proc constrain_rcmh_lvds_to_mm_cdc {} {
     set local_cmd_ack_src        [rcmh_get_registers_any [rcmh_node_patterns {local_cmd_ack_lvds}]]
     set local_cmd_ack_meta       [rcmh_get_registers_any [rcmh_node_patterns {local_cmd_ack_mm_sync[*]}]]
     set snap_update_src          [rcmh_get_registers_any [rcmh_node_patterns {snap_update_lvds}]]
-    set snap_update_meta         [rcmh_get_registers_any [rcmh_node_patterns {snap_update_mm_sync[*]}]]
+    set snap_update_meta         [rcmh_get_registers_any [concat \
+        [rcmh_node_patterns {snap_update_mm_q0}] \
+        [rcmh_node_patterns {snap_update_mm_q1}]]]
 
-    set snap_last_cmd_src        [rcmh_get_registers_any [rcmh_node_patterns {snap_last_cmd_lvds[*]}]]
-    set snap_last_cmd_dst        [rcmh_get_registers_any [rcmh_node_patterns {shadow_last_cmd[*]}]]
-    set snap_run_number_src      [rcmh_get_registers_any [rcmh_node_patterns {snap_run_number_lvds[*]}]]
-    set snap_run_number_dst      [rcmh_get_registers_any [rcmh_node_patterns {shadow_run_number[*]}]]
-    set snap_reset_assert_src    [rcmh_get_registers_any [rcmh_node_patterns {snap_reset_assert_lvds[*]}]]
-    set snap_reset_assert_dst    [rcmh_get_registers_any [rcmh_node_patterns {shadow_reset_assert[*]}]]
-    set snap_reset_release_src   [rcmh_get_registers_any [rcmh_node_patterns {snap_reset_release_lvds[*]}]]
-    set snap_reset_release_dst   [rcmh_get_registers_any [rcmh_node_patterns {shadow_reset_release[*]}]]
-    set snap_fpga_addr_src       [rcmh_get_registers_any [rcmh_node_patterns {snap_fpga_addr_lvds[*]}]]
-    set snap_fpga_addr_dst       [rcmh_get_registers_any [rcmh_node_patterns {shadow_fpga_addr[*]}]]
-    set snap_fpga_addr_valid_src [rcmh_get_registers_any [rcmh_node_patterns {snap_fpga_addr_valid_lvds}]]
-    set snap_fpga_addr_valid_dst [rcmh_get_registers_any [rcmh_node_patterns {shadow_fpga_addr_valid}]]
-    set snap_recv_ts_src         [rcmh_get_registers_any [rcmh_node_patterns {snap_recv_ts_lvds[*]}]]
-    set snap_recv_ts_dst         [rcmh_get_registers_any [rcmh_node_patterns {shadow_recv_ts[*]}]]
-    set snap_exec_ts_src         [rcmh_get_registers_any [rcmh_node_patterns {snap_exec_ts_lvds[*]}]]
-    set snap_exec_ts_dst         [rcmh_get_registers_any [rcmh_node_patterns {shadow_exec_ts[*]}]]
+    set snap_last_cmd_src        [rcmh_get_keepers_any [rcmh_node_patterns {snap_last_cmd_lvds[*]}]]
+    set snap_last_cmd_dst        [rcmh_get_keepers_any [rcmh_node_patterns {snap_last_cmd_mm_q0[*]}]]
+    set snap_run_number_src      [rcmh_get_keepers_any [rcmh_node_patterns {snap_run_number_lvds[*]}]]
+    set snap_run_number_dst      [rcmh_get_keepers_any [rcmh_node_patterns {snap_run_number_mm_q0[*]}]]
+    set snap_reset_assert_src    [rcmh_get_keepers_any [rcmh_node_patterns {snap_reset_assert_lvds[*]}]]
+    set snap_reset_assert_dst    [rcmh_get_keepers_any [rcmh_node_patterns {snap_reset_assert_mm_q0[*]}]]
+    set snap_reset_release_src   [rcmh_get_keepers_any [rcmh_node_patterns {snap_reset_release_lvds[*]}]]
+    set snap_reset_release_dst   [rcmh_get_keepers_any [rcmh_node_patterns {snap_reset_release_mm_q0[*]}]]
+    set snap_fpga_addr_src       [rcmh_get_keepers_any [rcmh_node_patterns {snap_fpga_addr_lvds[*]}]]
+    set snap_fpga_addr_dst       [rcmh_get_keepers_any [rcmh_node_patterns {snap_fpga_addr_mm_q0[*]}]]
+    set snap_fpga_addr_valid_src [rcmh_get_keepers_any [rcmh_node_patterns {snap_fpga_addr_valid_lvds}]]
+    set snap_fpga_addr_valid_dst [rcmh_get_keepers_any [rcmh_node_patterns {snap_fpga_addr_valid_mm_q0}]]
+    set snap_recv_ts_src         [rcmh_get_keepers_any [rcmh_node_patterns {snap_recv_ts_lvds[*]}]]
+    set snap_recv_ts_dst         [rcmh_get_keepers_any [rcmh_node_patterns {snap_recv_ts_mm_q0[*]}]]
+    set snap_exec_ts_src         [rcmh_get_keepers_any [rcmh_node_patterns {snap_exec_ts_lvds[*]}]]
+    set snap_exec_ts_dst         [rcmh_get_keepers_any [rcmh_node_patterns {snap_exec_ts_mm_q0[*]}]]
 
     set gts_gray_src             [rcmh_get_registers_any [rcmh_node_patterns {gts_gray_lvds[*]}]]
     set gts_gray_meta            [rcmh_get_registers_any [rcmh_node_patterns {gts_gray_mm_ff0[*]}]]
@@ -95,35 +115,37 @@ proc constrain_rcmh_lvds_to_mm_cdc {} {
     set log_drop_gray_src        [rcmh_get_registers_any [rcmh_node_patterns {log_drop_gray_lvds[*]}]]
     set log_drop_gray_meta       [rcmh_get_registers_any [rcmh_node_patterns {log_drop_gray_ff0[*]}]]
 
-    set recv_state_src           [rcmh_get_registers_any [rcmh_state_patterns {recv_state.*}]]
-    set recv_state_meta          [rcmh_get_registers_any [rcmh_node_patterns {recv_state_sync_q0[*]}]]
-    set host_state_src           [rcmh_get_registers_any [rcmh_state_patterns {host_state.*}]]
-    set host_state_meta          [rcmh_get_registers_any [rcmh_node_patterns {host_state_sync_q0[*]}]]
-    set recv_idle_meta           [rcmh_get_registers_any [rcmh_node_patterns {recv_idle_sync[*]}]]
-    set host_idle_meta           [rcmh_get_registers_any [rcmh_node_patterns {host_idle_sync[*]}]]
-    set dp_hreset_src            [rcmh_get_registers_any [rcmh_node_patterns {dp_hard_reset_q}]]
-    set dp_hreset_meta           [rcmh_get_registers_any [rcmh_node_patterns {dp_hreset_sync[*]}]]
-    set ct_hreset_src            [rcmh_get_registers_any [rcmh_node_patterns {ct_hard_reset_q}]]
-    set ct_hreset_meta           [rcmh_get_registers_any [rcmh_node_patterns {ct_hreset_sync[*]}]]
+    set recv_state_src           [rcmh_get_keepers_any [rcmh_node_patterns {recv_state_lvds[*]}]]
+    set recv_state_meta          [rcmh_get_keepers_any [rcmh_node_patterns {recv_state_sync_attr_q0[*]}]]
+    set host_state_src           [rcmh_get_keepers_any [rcmh_node_patterns {host_state_lvds[*]}]]
+    set host_state_meta          [rcmh_get_keepers_any [rcmh_node_patterns {host_state_sync_attr_q0[*]}]]
+    set recv_idle_src            [rcmh_get_registers_any [rcmh_node_patterns {recv_idle_lvds}]]
+    set host_idle_src            [rcmh_get_registers_any [rcmh_node_patterns {host_idle_lvds}]]
+    set recv_idle_meta           [rcmh_get_registers_any [rcmh_node_patterns {recv_idle_sync_attr[*]}]]
+    set host_idle_meta           [rcmh_get_registers_any [rcmh_node_patterns {host_idle_sync_attr[*]}]]
+    set dp_hreset_src            [rcmh_get_registers_any [rcmh_node_patterns {dp_hard_reset_raw}]]
+    set dp_hreset_meta           [rcmh_get_registers_any [rcmh_node_patterns {dp_hreset_sync_attr[*]}]]
+    set ct_hreset_src            [rcmh_get_registers_any [rcmh_node_patterns {ct_hard_reset_raw}]]
+    set ct_hreset_meta           [rcmh_get_registers_any [rcmh_node_patterns {ct_hreset_sync_attr[*]}]]
 
     rcmh_apply_false_path_pair $local_cmd_ack_src        $local_cmd_ack_meta
     rcmh_apply_false_path_pair $snap_update_src          $snap_update_meta
-    rcmh_apply_false_path_pair $snap_last_cmd_src        $snap_last_cmd_dst
-    rcmh_apply_false_path_pair $snap_run_number_src      $snap_run_number_dst
-    rcmh_apply_false_path_pair $snap_reset_assert_src    $snap_reset_assert_dst
-    rcmh_apply_false_path_pair $snap_reset_release_src   $snap_reset_release_dst
-    rcmh_apply_false_path_pair $snap_fpga_addr_src       $snap_fpga_addr_dst
-    rcmh_apply_false_path_pair $snap_fpga_addr_valid_src $snap_fpga_addr_valid_dst
-    rcmh_apply_false_path_pair $snap_recv_ts_src         $snap_recv_ts_dst
-    rcmh_apply_false_path_pair $snap_exec_ts_src         $snap_exec_ts_dst
+    rcmh_apply_async_capture_pair $snap_last_cmd_src        $snap_last_cmd_dst
+    rcmh_apply_async_capture_pair $snap_run_number_src      $snap_run_number_dst
+    rcmh_apply_async_capture_pair $snap_reset_assert_src    $snap_reset_assert_dst
+    rcmh_apply_async_capture_pair $snap_reset_release_src   $snap_reset_release_dst
+    rcmh_apply_async_capture_pair $snap_fpga_addr_src       $snap_fpga_addr_dst
+    rcmh_apply_async_capture_pair $snap_fpga_addr_valid_src $snap_fpga_addr_valid_dst
+    rcmh_apply_async_capture_pair $snap_recv_ts_src         $snap_recv_ts_dst
+    rcmh_apply_async_capture_pair $snap_exec_ts_src         $snap_exec_ts_dst
     rcmh_apply_false_path_pair $gts_gray_src             $gts_gray_meta
     rcmh_apply_false_path_pair $rx_cmd_gray_src          $rx_cmd_gray_meta
     rcmh_apply_false_path_pair $rx_err_gray_src          $rx_err_gray_meta
     rcmh_apply_false_path_pair $log_drop_gray_src        $log_drop_gray_meta
-    rcmh_apply_false_path_pair $recv_state_src           $recv_state_meta
-    rcmh_apply_false_path_pair $recv_state_src           $recv_idle_meta
-    rcmh_apply_false_path_pair $host_state_src           $host_state_meta
-    rcmh_apply_false_path_pair $host_state_src           $host_idle_meta
+    rcmh_apply_async_capture_pair $recv_state_src        $recv_state_meta
+    rcmh_apply_false_path_pair $recv_idle_src            $recv_idle_meta
+    rcmh_apply_async_capture_pair $host_state_src        $host_state_meta
+    rcmh_apply_false_path_pair $host_idle_src            $host_idle_meta
     rcmh_apply_false_path_pair $dp_hreset_src            $dp_hreset_meta
     rcmh_apply_false_path_pair $ct_hreset_src            $ct_hreset_meta
 }
