@@ -57,6 +57,7 @@ Historical formal note:
 | [BUG-002-R](#bug-002-r-reset-and-stop-reset-could-deadlock-behind-downstream-run-control-fanout-ready) | R | hard stuck error | `occasional (control-path reset release)` | fixed and rerun green in the local working tree through targeted UVM and integrated RC TB | FEB run-control reset broadcast on `2026-04-24` | current working tree on `run-control_mgmt` base `379e13a` | `CMD_RESET` / `CMD_STOP_RESET` waited for downstream run-control fanout ready before releasing the reset tree |
 | [BUG-003-R](#bug-003-r-synclink-run_prepare-decoded-swb-run-number-bytes-in-the-wrong-order) | R | soft error | `common (normal SWB RUN_PREPARE with non-palindromic run number)` | fixed and standalone-rerun green in the local working tree; integrated FEB rerun pending new image | FEB RC checker `run-prepare --run 42` on `2026-04-24` | current working tree on `run-control_mgmt` base `379e13a` | `RUN_NUMBER` CSR latched `0x2A000000` instead of `0x0000002A` because SWB sends run-number bytes least-significant first |
 | [BUG-004-R](#bug-004-r-link-test-and-sync-test-reset-link-opcodes-were-dropped-as-unknown-by-the-feb-host) | R | soft error | `occasional (commissioning and diagnostic run-control command sweep)` | fixed and standalone-rerun green in the local working tree; regenerated-image rerun pending | FEB full RC checker `--sequence full` on `2026-04-25` | current working tree on `run-control_mgmt` base `379e13a` | `0x20`, `0x21`, `0x24`, `0x25`, and `0x26` echoed at the SWB reset-link status but were dropped by `runctl_mgmt_host` as unknown bytes |
+| [BUG-009-R](#bug-009-r-snapshot-csr-cdc-missing-synchronized-updatevalid-handshake) | R | hard stuck error | `swept (standalone 1.1x timing closure)` | fixed and standalone 4-corner STA closed at 1.1x in iter 3 | integration STA setup trace #103 on `2026-05-13` | `24be671` | `snap_*_lvds -> snap_*_mm_q0` CDC missing synchronized update/valid handshake; STA timed the multi-bit crossing as a normal setup endpoint |
 
 ## 2026-04-22
 
@@ -293,3 +294,72 @@ Historical formal note:
     `firmware_builds/board_test/reports/check_run_control_full_20260425_runctl264_seed3.log`
   - targeted standalone test extended in:
     `runctl_mgmt_host_synclink_cmd_matrix_test`
+
+## 2026-05-13
+
+### BUG-009-R: snapshot CSR CDC missing synchronized update/valid handshake
+
+- First seen in:
+  - integration STA setup trace #103 at commit `9b6dcf7a`
+  - failing trace:
+    `firmware_builds/systems/v3_pretest-260511-pulserdrop-260512/doc/STA_FAIL_TRACE.md`
+  - worst failing endpoint:
+    `snap_exec_ts_lvds[9] -> snap_exec_ts_mm_q0[9]` at `-3.220 ns`
+    Slow85 setup slack
+- Symptom:
+  - all 40 worst-10-per-corner setup paths were inside
+    `run-control_mgmt/runctl_mgmt_host`
+  - the failing families were the snapshot CSR bus
+    `snap_*_lvds -> snap_*_mm_q0` and the live status mirror
+    `host_state_lvds -> host_state_sync_attr_q0`
+  - the paths had zero LUT levels, proving this was a raw LVDS-domain flop to
+    MM-domain flop crossing rather than local combinational timing
+- Root cause:
+  - the LVDS snapshot registers toggled `snap_update_lvds`, but the MM-side
+    `snap_*_mm_q0` registers sampled the multi-bit buses continuously
+  - final CSR shadows were gated by the synchronized toggle, but the first
+    MM-side data stage remained a normal timed setup endpoint
+  - the IP SDC false-pathed the old final shadow names instead of the real
+    failing capture endpoints and had no skew bound for the async bus capture
+- Fix status:
+  - state:
+    fixed and standalone 4-corner STA closed at 1.1x in iteration 3
+  - mechanism:
+    `rtl/runctl_mgmt_host.sv` now holds the LVDS snapshot bus stable for a
+    five-cycle update phase, synchronizes a single-bit update toggle into
+    `mm_clk`, and captures `snap_*_lvds` into `snap_*_mm_q0` only on the
+    detected MM update pulse; `runctl_mgmt_host.sdc` constrains only the
+    genuine async capture paths with false-path and max-skew assignments
+  - before_fix_outcome:
+    integration STA reported `-3.220 ns` Slow85 setup on
+    `snap_exec_ts_lvds[9] -> snap_exec_ts_mm_q0[9]`
+  - after_fix_outcome:
+    standalone iteration 3 closed setup, hold, recovery, and removal in all
+    four corners at 1.1x; worst setup WNS was `0.655 ns`, and worst hold WNS
+    was `0.126 ns`
+  - potential_hazard:
+    the integration image still needs clean Qsys regeneration and full top
+    re-fit before the board build can claim closure
+  - Claude Opus 4.7 xhigh review decision:
+    `pending / not run`
+- Iteration evidence:
+  - iter 1:
+    snapshot bus gating compiled, but STA exposed stale SDC coverage on
+    `recv_idle_lvds -> recv_idle_sync_attr[0]`; Slow85 setup WNS was
+    `-0.970 ns`
+  - iter 2:
+    idle/status SDC was repaired, but STA exposed stale hard-reset source
+    patterns on `dp_hard_reset_raw -> dp_hreset_sync_attr[0]`; Slow85 setup
+    WNS was `-1.199 ns`
+  - iter 3:
+    hard-reset source patterns were retargeted to the raw async sources, and
+    standalone 1.1x STA closed in all corners
+- Reproducer and evidence:
+  - code fix commit:
+    `24be671` `[FIX] HW: gate runctl snapshot CDC`
+  - standalone project:
+    `syn/quartus/runctl_mgmt_host_syn.qpf`
+  - compile command:
+    `quartus_sh --flow compile runctl_mgmt_host_syn -c runctl_mgmt_host_syn`
+  - final STA summary:
+    `syn/quartus/output_files/runctl_mgmt_host_syn.sta.summary`
