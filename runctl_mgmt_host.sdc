@@ -88,6 +88,10 @@ proc constrain_rcmh_lvds_to_mm_cdc {} {
     set snap_update_meta         [rcmh_get_registers_any [concat \
         [rcmh_node_patterns {snap_update_mm_q0}] \
         [rcmh_node_patterns {snap_update_mm_q1}]]]
+    set state_update_src         [rcmh_get_registers_any [rcmh_node_patterns {state_update_lvds}]]
+    set state_update_meta        [rcmh_get_registers_any [concat \
+        [rcmh_node_patterns {state_update_mm_q0}] \
+        [rcmh_node_patterns {state_update_mm_q1}]]]
 
     set snap_last_cmd_src        [rcmh_get_keepers_any [rcmh_node_patterns {snap_last_cmd_lvds[*]}]]
     set snap_last_cmd_dst        [rcmh_get_keepers_any [rcmh_node_patterns {snap_last_cmd_mm_q0[*]}]]
@@ -130,6 +134,7 @@ proc constrain_rcmh_lvds_to_mm_cdc {} {
 
     rcmh_apply_false_path_pair $local_cmd_ack_src        $local_cmd_ack_meta
     rcmh_apply_false_path_pair $snap_update_src          $snap_update_meta
+    rcmh_apply_false_path_pair $state_update_src         $state_update_meta
     rcmh_apply_async_capture_pair $snap_last_cmd_src        $snap_last_cmd_dst
     rcmh_apply_async_capture_pair $snap_run_number_src      $snap_run_number_dst
     rcmh_apply_async_capture_pair $snap_reset_assert_src    $snap_reset_assert_dst

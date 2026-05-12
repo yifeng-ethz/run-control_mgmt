@@ -15,9 +15,11 @@
 // mailbox is replaced by a word-addressed CSR block with an identity header.
 //
 // Author  : Yifeng Wang (yifenwan@phys.ethz.ch)
-// Version : 26.3.1
+// Version : 26.3.2
 // Date    : 20260513
-// Change  : 26.3.1 — gate the LVDS-to-MM snapshot CSR bank with the
+// Change  : 26.3.2 — gate the multi-bit LVDS-to-MM STATUS state mirrors
+//                     with a synchronized update toggle.
+//           26.3.1 — gate the LVDS-to-MM snapshot CSR bank with the
 //                     synchronized update toggle and constrain the async
 //                     capture path explicitly.
 //           26.3.0 — make the runctl fanout stream readyless so decoded
@@ -66,7 +68,7 @@ module runctl_mgmt_host #(
     parameter logic [31:0] IP_UID         = 32'h5243_4D48, // ASCII "RCMH"
     parameter logic [7:0]  VERSION_MAJOR  = 8'd26,
     parameter logic [7:0]  VERSION_MINOR  = 8'd3,
-    parameter logic [3:0]  VERSION_PATCH  = 4'd1,
+    parameter logic [3:0]  VERSION_PATCH  = 4'd2,
     parameter logic [11:0] BUILD          = 12'h513,     // MMDD = 0513
     parameter logic [31:0] VERSION_DATE   = 32'h2026_0513,
     parameter logic [31:0] VERSION_GIT    = 32'h0,
@@ -460,6 +462,15 @@ module runctl_mgmt_host #(
     logic        snap_update_mm_seen;
     logic        snap_update_mm_pulse;
 
+    // Multi-bit STATUS state update toggle (lvds->mm notification)
+    logic        state_update_lvds;     // toggle
+    logic        state_update_pending_lvds;
+    logic [2:0]  state_update_hold_count_lvds;
+    (* async_reg = "true", preserve = "true" *) logic state_update_mm_q0;
+    (* async_reg = "true", preserve = "true" *) logic state_update_mm_q1;
+    logic        state_update_mm_seen;
+    logic        state_update_mm_pulse;
+
     localparam logic [2:0] SNAP_UPDATE_HOLD_CYCLES = 3'd5;
 
     // Saturating event strobes
@@ -743,11 +754,28 @@ module runctl_mgmt_host #(
             host_idle_lvds   <= 1'b1;
             recv_state_lvds  <= RECV_IDLE;
             host_state_lvds  <= HOST_IDLE_ST;
+            state_update_lvds          <= 1'b0;
+            state_update_pending_lvds  <= 1'b0;
+            state_update_hold_count_lvds <= 3'd0;
         end else begin
             recv_idle_lvds   <= (recv_state == RECV_IDLE);
             host_idle_lvds   <= (host_state == HOST_IDLE_ST);
-            recv_state_lvds  <= recv_state;
-            host_state_lvds  <= host_state;
+
+            if (!state_update_pending_lvds &&
+                ((recv_state_lvds != recv_state) ||
+                 (host_state_lvds != host_state))) begin
+                recv_state_lvds            <= recv_state;
+                host_state_lvds            <= host_state;
+                state_update_pending_lvds  <= 1'b1;
+                state_update_hold_count_lvds <= SNAP_UPDATE_HOLD_CYCLES;
+            end else if (state_update_pending_lvds) begin
+                if (state_update_hold_count_lvds == 3'd0) begin
+                    state_update_lvds         <= ~state_update_lvds;
+                    state_update_pending_lvds <= 1'b0;
+                end else begin
+                    state_update_hold_count_lvds <= state_update_hold_count_lvds - 3'd1;
+                end
+            end
         end
     end
 
@@ -1022,12 +1050,17 @@ module runctl_mgmt_host #(
     (* async_reg = "true", preserve = "true" *) logic [15:0] recv_state_sync_attr_q0, recv_state_sync_attr_q1;
     (* async_reg = "true", preserve = "true" *) logic [15:0] host_state_sync_attr_q0, host_state_sync_attr_q1;
 
+    assign state_update_mm_pulse = (state_update_mm_q1 != state_update_mm_seen);
+
     always_ff @(posedge mm_clk) begin
         if (mm_reset) begin
             recv_idle_sync_attr     <= 2'b00;
             host_idle_sync_attr     <= 2'b00;
             dp_hreset_sync_attr     <= 2'b00;
             ct_hreset_sync_attr     <= 2'b00;
+            state_update_mm_q0      <= 1'b0;
+            state_update_mm_q1      <= 1'b0;
+            state_update_mm_seen    <= 1'b0;
             recv_state_sync_attr_q0 <= 16'd0;
             recv_state_sync_attr_q1 <= 16'd0;
             host_state_sync_attr_q0 <= 16'd0;
@@ -1037,9 +1070,16 @@ module runctl_mgmt_host #(
             host_idle_sync_attr <= {host_idle_sync_attr[0], host_idle_lvds};
             dp_hreset_sync_attr <= {dp_hreset_sync_attr[0], dp_hard_reset_raw};
             ct_hreset_sync_attr <= {ct_hreset_sync_attr[0], ct_hard_reset_raw};
-            recv_state_sync_attr_q0 <= {8'h00, recv_state_lvds};
+            state_update_mm_q0  <= state_update_lvds;
+            state_update_mm_q1  <= state_update_mm_q0;
+
+            if (state_update_mm_pulse) begin
+                recv_state_sync_attr_q0 <= {8'h00, recv_state_lvds};
+                host_state_sync_attr_q0 <= {8'h00, host_state_lvds};
+                state_update_mm_seen    <= state_update_mm_q1;
+            end
+
             recv_state_sync_attr_q1 <= recv_state_sync_attr_q0;
-            host_state_sync_attr_q0 <= {8'h00, host_state_lvds};
             host_state_sync_attr_q1 <= host_state_sync_attr_q0;
         end
     end
