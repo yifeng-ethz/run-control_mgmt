@@ -57,7 +57,7 @@ Historical formal note:
 | [BUG-002-R](#bug-002-r-reset-and-stop-reset-could-deadlock-behind-downstream-run-control-fanout-ready) | R | hard stuck error | `occasional (control-path reset release)` | fixed and rerun green in the local working tree through targeted UVM and integrated RC TB | FEB run-control reset broadcast on `2026-04-24` | current working tree on `run-control_mgmt` base `379e13a` | `CMD_RESET` / `CMD_STOP_RESET` waited for downstream run-control fanout ready before releasing the reset tree |
 | [BUG-003-R](#bug-003-r-synclink-run_prepare-decoded-swb-run-number-bytes-in-the-wrong-order) | R | soft error | `common (normal SWB RUN_PREPARE with non-palindromic run number)` | fixed and standalone-rerun green in the local working tree; integrated FEB rerun pending new image | FEB RC checker `run-prepare --run 42` on `2026-04-24` | current working tree on `run-control_mgmt` base `379e13a` | `RUN_NUMBER` CSR latched `0x2A000000` instead of `0x0000002A` because SWB sends run-number bytes least-significant first |
 | [BUG-004-R](#bug-004-r-link-test-and-sync-test-reset-link-opcodes-were-dropped-as-unknown-by-the-feb-host) | R | soft error | `occasional (commissioning and diagnostic run-control command sweep)` | fixed and standalone-rerun green in the local working tree; regenerated-image rerun pending | FEB full RC checker `--sequence full` on `2026-04-25` | current working tree on `run-control_mgmt` base `379e13a` | `0x20`, `0x21`, `0x24`, `0x25`, and `0x26` echoed at the SWB reset-link status but were dropped by `runctl_mgmt_host` as unknown bytes |
-| [BUG-009-R](#bug-009-r-snapshot-csr-cdc-missing-synchronized-updatevalid-handshake) | R | hard stuck error | `swept (standalone 1.1x timing closure)` | fixed and standalone 4-corner STA closed at 1.1x in iter 4 | integration STA setup trace #103 on `2026-05-13` | `24be671`/`023fb18` | `snap_*_lvds -> snap_*_mm_q0` CDC missing synchronized update/valid handshake; STA timed the multi-bit crossing as a normal setup endpoint |
+| [BUG-009-R](#bug-009-r-snapshot-csr-cdc-missing-synchronized-updatevalid-handshake) | R | hard stuck error | `swept (standalone 1.1x timing closure)` | fixed in IP; standalone 4-corner STA closed at 1.1x in iter 4; integration now fails on a different data-path FIFO family | integration STA setup trace #103 on `2026-05-13` | `24be671`/`023fb18` | `snap_*_lvds -> snap_*_mm_q0` CDC missing synchronized update/valid handshake; STA timed the multi-bit crossing as a normal setup endpoint |
 
 ## 2026-04-22
 
@@ -340,8 +340,13 @@ Historical formal note:
     four corners at 1.1x; worst setup WNS was `1.024 ns`, and worst hold WNS
     was `0.146 ns`
   - potential_hazard:
-    the integration image still needs clean Qsys regeneration and full top
-    re-fit before the board build can claim closure
+    final integration re-fit with generated `runctl_mgmt_host` version
+    `26.3.2` no longer reports the original run-control snapshot/status CDC
+    paths in the failing setup list, but the board build still fails setup on
+    a different data-path interconnect/FIFO family:
+    `mm_clock_crossing_bridge_m0_translator` /
+    `altera_avalon_dc_fifo:cmd_fifo` (`Slow85 = -0.956 ns`,
+    `Slow0 = -0.577 ns`)
   - Claude Opus 4.7 xhigh review decision:
     `pending / not run`
 - Iteration evidence:
@@ -370,3 +375,5 @@ Historical formal note:
     `quartus_sh --flow compile runctl_mgmt_host_syn -c runctl_mgmt_host_syn`
   - final STA summary:
     `syn/quartus/output_files/runctl_mgmt_host_syn.sta.summary`
+  - final integration trace:
+    `firmware_builds/systems/v3_pretest-260511-pulserdrop-260512/syn/board_projects/fe_scifi_feb_v3/sta/fail_trace_1p0/`
