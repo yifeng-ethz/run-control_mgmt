@@ -4,7 +4,7 @@
   <vendorID>MU3E</vendorID>
   <name>MU3E_RUNCTL_MGMT_HOST</name>
   <series>MU3E_FPGA_IP</series>
-  <version>26.3.0.0505</version>
+  <version>26.3.3.0525</version>
   <description>CMSIS-SVD description of the Run-Control Management Host CSR window. BaseAddress is 0 because this file describes the relative CSR aperture of the IP; system integration supplies the live slave base address.</description>
   <addressUnitBits>8</addressUnitBits>
   <width>32</width>
@@ -163,9 +163,33 @@
         </register>
         <register>
           <name>ACK_SYMBOLS</name>
-          <description>Configured upload acknowledgement symbols for RUN_PREPARE and END_RUN.</description>
+          <description>Configured upload acknowledgement symbols for RUN_PREPARE and END_RUN. Reset/default value packs RUN_START_ACK_SYMBOL=0xFE in [7:0] and RUN_END_ACK_SYMBOL=0xFD in [15:8].</description>
           <addressOffset>0x50</addressOffset>
           <access>read-only</access>
+          <resetValue>0x0000FDFE</resetValue>
+          <fields>
+            <field>
+              <name>run_start_ack_symbol</name>
+              <description>RUN_PREPARE upload acknowledgement symbol. Default K30.7 = 0xFE.</description>
+              <bitOffset>0</bitOffset>
+              <bitWidth>8</bitWidth>
+              <access>read-only</access>
+            </field>
+            <field>
+              <name>run_end_ack_symbol</name>
+              <description>END_RUN upload acknowledgement symbol. Default K29.7 = 0xFD.</description>
+              <bitOffset>8</bitOffset>
+              <bitWidth>8</bitWidth>
+              <access>read-only</access>
+            </field>
+            <field>
+              <name>reserved</name>
+              <description>Reserved, read as zero.</description>
+              <bitOffset>16</bitOffset>
+              <bitWidth>16</bitWidth>
+              <access>read-only</access>
+            </field>
+          </fields>
         </register>
       </registers>
     </peripheral>

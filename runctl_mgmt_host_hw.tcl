@@ -2,7 +2,7 @@
 # runctl_mgmt_host_hw.tcl
 #
 # Platform Designer (Qsys) component definition for the Run-Control Management
-# Host Mu3e IP Core (SystemVerilog rewrite, version 26.3.2).
+# Host Mu3e IP Core (SystemVerilog rewrite, version 26.3.3).
 #
 # This IP receives run-control commands on <synclink> (9-bit 8b/1k byte stream
 # in the lvdspll_clk domain), decodes and fans them out on <runctl>, acks
@@ -11,7 +11,7 @@
 # 21 functional registers, and a 1024-deep x 32b log read-back port.
 #
 # Author  : Yifeng Wang (yifenwan@phys.ethz.ch)
-# Packaged: 2026-05-13
+# Packaged: 2026-05-25
 ################################################################################
 
 package require -exact qsys 16.1
@@ -22,9 +22,9 @@ package require -exact qsys 16.1
 # VERSION string format: YY.MINOR.PATCH.MMDD
 set VERSION_MAJOR_DEFAULT_CONST 26        ;# 2-digit year
 set VERSION_MINOR_DEFAULT_CONST 3         ;# feature revision
-set VERSION_PATCH_DEFAULT_CONST 2         ;# bug-fix revision
-set BUILD_DEFAULT_CONST         0513      ;# MMDD packaging date (May 13)
-set VERSION_DATE_DEFAULT_CONST  20260513  ;# YYYYMMDD
+set VERSION_PATCH_DEFAULT_CONST 3         ;# bug-fix revision
+set BUILD_DEFAULT_CONST         0525      ;# MMDD packaging date (May 25)
+set VERSION_DATE_DEFAULT_CONST  20260525  ;# YYYYMMDD
 set VERSION_GIT_DEFAULT_CONST   0x414E5CB ;# `git rev-parse --short HEAD`
 set INSTANCE_ID_DEFAULT_CONST   0
 set IP_UID_DEFAULT_CONST        0x52434D48 ;# ASCII "RCMH"

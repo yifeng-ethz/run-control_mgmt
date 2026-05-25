@@ -218,8 +218,8 @@
    version="26.2.0.0416"
    enabled="1">
   <parameter name="DEBUG" value="1" />
-  <parameter name="RUN_END_ACK_SYMBOL" value="11111101" />
-  <parameter name="RUN_START_ACK_SYMBOL" value="11111110" />
+  <parameter name="RUN_END_ACK_SYMBOL" value="0xFD" />
+  <parameter name="RUN_START_ACK_SYMBOL" value="0xFE" />
  </module>
  <module
    name="upload_cdc_fifo"

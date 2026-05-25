@@ -77,16 +77,16 @@ Historical formal note:
 - Root cause:
   - `runctl_mgmt_host` RTL and `runctl_mgmt_host_hw.tcl` already default
     `RUN_START_ACK_SYMBOL=0xFE` and `RUN_END_ACK_SYMBOL=0xFD`
-  - the checked generated `feb_system_v4_upload_subsystem.vhd` instance
-    still overrode those generics to the stale RUN_START_ACK/RUN_END_ACK
-    byte values `0xC6` / `0xBD`
+  - the checked upload subsystem Qsys snapshot stored the ACK parameters as
+    bare values `11111110` / `11111101`; Quartus interpreted those as decimal
+    integers, then truncated them to 8 bits, yielding `0xC6` / `0xBD`
 - Fix status:
-  - state: fixed in the generated FEB build wrapper; FEB CSR readback
-    confirms the FE/FD values after the legal reset-link sequence proof
+  - state: fixed in the generated FEB build wrapper and made regen-safe in
+    the active upload subsystem Qsys snapshot; FEB CSR readback confirms the
+    FE/FD values after the legal reset-link sequence proof
   - mechanism:
-    - hand-edit the generated wrapper instance in the FEB build directory
-      to pass `RUN_START_ACK_SYMBOL => "11111110"` and
-      `RUN_END_ACK_SYMBOL => "11111101"`
+    - convert the active Qsys parameter literals to explicit hex
+      `RUN_START_ACK_SYMBOL=0xFE` and `RUN_END_ACK_SYMBOL=0xFD`
     - verify the upstream package default already matches the intended
       packed CSR readback `[15:8]=0xFD`, `[7:0]=0xFE` (`0xFDFE`)
   - before_fix_outcome:
@@ -100,6 +100,11 @@ Historical formal note:
       `run-prepare`, `sync`, `start-run` reached the FEB receive path with
       `LAST_CMD=0x12`, `RUN_NUMBER=1`, `RX_CMD_COUNT=4`, and
       `ACK_SYMBOLS=0xFDFE`; SWB status ended at `0x12000004`
+    - the `26.3.3` packaging refresh keeps the source defaults at
+      `RUN_START_ACK_SYMBOL=0xFE` and `RUN_END_ACK_SYMBOL=0xFD`, records
+      the `ACK_SYMBOLS` SVD reset value as `0x0000FDFE`, normalizes the active
+      Qsys snapshot to hex literals, and makes future `qsys-syn` regeneration
+      produce the FE/FD wrapper values without a manual generated-tree override
   - potential_hazard:
     - this is a generated-tree override in one FEB build directory and can
       be overwritten by regeneration; future Qsys generation should be

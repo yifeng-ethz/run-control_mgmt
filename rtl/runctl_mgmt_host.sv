@@ -15,9 +15,11 @@
 // mailbox is replaced by a word-addressed CSR block with an identity header.
 //
 // Author  : Yifeng Wang (yifenwan@phys.ethz.ch)
-// Version : 26.3.2
-// Date    : 20260513
-// Change  : 26.3.2 — gate the multi-bit LVDS-to-MM STATUS state mirrors
+// Version : 26.3.3
+// Date    : 20260525
+// Change  : 26.3.3 — document and package FE/FD ACK_SYMBOLS as the
+//                     regen-safe default for FEB v4 Qsys generation.
+//           26.3.2 — gate the multi-bit LVDS-to-MM STATUS state mirrors
 //                     with a synchronized update toggle.
 //           26.3.1 — gate the LVDS-to-MM snapshot CSR bank with the
 //                     synchronized update toggle and constrain the async
@@ -68,9 +70,9 @@ module runctl_mgmt_host #(
     parameter logic [31:0] IP_UID         = 32'h5243_4D48, // ASCII "RCMH"
     parameter logic [7:0]  VERSION_MAJOR  = 8'd26,
     parameter logic [7:0]  VERSION_MINOR  = 8'd3,
-    parameter logic [3:0]  VERSION_PATCH  = 4'd2,
-    parameter logic [11:0] BUILD          = 12'h513,     // MMDD = 0513
-    parameter logic [31:0] VERSION_DATE   = 32'h2026_0513,
+    parameter logic [3:0]  VERSION_PATCH  = 4'd3,
+    parameter logic [11:0] BUILD          = 12'h525,     // MMDD = 0525
+    parameter logic [31:0] VERSION_DATE   = 32'h2026_0525,
     parameter logic [31:0] VERSION_GIT    = 32'h0,
     parameter logic [31:0] INSTANCE_ID    = 32'h0,
     parameter logic [15:0] EXT_HARD_RESET_PULSE_CYCLES = 16'd16384
