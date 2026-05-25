@@ -19,6 +19,10 @@ DPI_CPP     ?= /usr/bin/gcc
 TEST ?= runctl_mgmt_host_smoke_test
 TB_TOP := tb_top
 
+define clean_dir_contents
+	@if [ -d "$(1)" ]; then find "$(1)" -mindepth 1 -delete; fi
+endef
+
 .PHONY: compile_uvm run_uvm_smoke run_uvm generate_gate_netlist compile_gate_uvm run_gate_uvm_smoke clean
 
 compile_uvm: $(WORK_DIR)/.compiled
@@ -36,7 +40,7 @@ $(WORK_DIR)/.compiled: \
   $(TB_UVM_DIR)/runctl_mgmt_env_pkg.sv \
   $(TB_UVM_DIR)/tb_top.sv
 	@echo "=== Compiling runctl_mgmt_host UVM smoke bench ==="
-	@rm -rf $(WORK_DIR)
+	$(call clean_dir_contents,$(WORK_DIR))
 	@mkdir -p $(WORK_DIR) $(LOG_DIR)
 	@cd $(WORK_DIR) && $(VLIB) work
 	@cp $(QSIM_INI) $(WORK_DIR)/$(MODELSIM_INI)
@@ -99,7 +103,7 @@ $(GATE_WORK_DIR)/.compiled: \
   $(TB_UVM_DIR)/runctl_mgmt_env_pkg.sv \
   $(TB_UVM_DIR)/tb_top.sv
 	@echo "=== Compiling runctl_mgmt_host gate smoke bench ==="
-	@rm -rf $(GATE_WORK_DIR)
+	$(call clean_dir_contents,$(GATE_WORK_DIR))
 	@mkdir -p $(GATE_WORK_DIR) $(GATE_WORK_DIR)/verilog_libs $(LOG_DIR)
 	@cd $(GATE_WORK_DIR) && $(VLIB) work
 	@cp $(QSIM_INI) $(GATE_WORK_DIR)/$(MODELSIM_INI)
@@ -168,4 +172,7 @@ run_gate_uvm_smoke: compile_gate_uvm
 	fi
 
 clean:
-	rm -rf $(WORK_DIR) $(GATE_WORK_DIR) $(LOG_DIR) transcript vsim.wlf
+	$(call clean_dir_contents,$(WORK_DIR))
+	$(call clean_dir_contents,$(GATE_WORK_DIR))
+	$(call clean_dir_contents,$(LOG_DIR))
+	@find $(TB_ROOT) -maxdepth 1 -type f \( -name transcript -o -name vsim.wlf \) -delete

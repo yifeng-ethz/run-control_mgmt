@@ -58,7 +58,50 @@ Historical formal note:
 | [BUG-003-R](#bug-003-r-synclink-run_prepare-decoded-swb-run-number-bytes-in-the-wrong-order) | R | soft error | `common (normal SWB RUN_PREPARE with non-palindromic run number)` | fixed and standalone-rerun green in the local working tree; integrated FEB rerun pending new image | FEB RC checker `run-prepare --run 42` on `2026-04-24` | current working tree on `run-control_mgmt` base `379e13a` | `RUN_NUMBER` CSR latched `0x2A000000` instead of `0x0000002A` because SWB sends run-number bytes least-significant first |
 | [BUG-004-R](#bug-004-r-link-test-and-sync-test-reset-link-opcodes-were-dropped-as-unknown-by-the-feb-host) | R | soft error | `occasional (commissioning and diagnostic run-control command sweep)` | fixed and standalone-rerun green in the local working tree; regenerated-image rerun pending | FEB full RC checker `--sequence full` on `2026-04-25` | current working tree on `run-control_mgmt` base `379e13a` | `0x20`, `0x21`, `0x24`, `0x25`, and `0x26` echoed at the SWB reset-link status but were dropped by `runctl_mgmt_host` as unknown bytes |
 | [BUG-005-R](#bug-005-r-generated-feb-wrapper-overrode-ack-symbols-to-non-swb-values) | R | soft error | `common (SWB user feedback for FEB run-start/run-end ack)` | fixed in generated FEB wrapper; FEB CSR readback confirms FE/FD after legal reset-link sequence | FEB v4 generated wrapper audit on `2026-05-24` | pending local generated-tree override | Generated `feb_system_v4_upload_subsystem` overrode `RUN_START_ACK_SYMBOL/RUN_END_ACK_SYMBOL` to 0xC6/0xBD, while the SWB listener expects 0xFE/0xFD. |
+| [BUG-006-H](#bug-006-h-standalone-tb-makefile-clean-used-unguarded-destructive-delete) | H | non-datapath-refactor | `common (standalone tb compile or clean rerun)` | fixed in tb Makefile tooling; standalone rerun intentionally deferred | Phase 2 ACK_SYMBOLS standalone rerun skipped on `2026-05-25` | pending local tooling cleanup | Standalone tb Makefile cleanup used unguarded destructive delete patterns, violating the global no-rm discipline. |
 | [BUG-009-R](#bug-009-r-snapshot-csr-cdc-missing-synchronized-updatevalid-handshake) | R | hard stuck error | `swept (standalone 1.1x timing closure)` | fixed in IP; standalone 4-corner STA closed at 1.1x in iter 4; integration now fails on a different data-path FIFO family | integration STA setup trace #103 on `2026-05-13` | `24be671`/`023fb18` | `snap_*_lvds -> snap_*_mm_q0` CDC missing synchronized update/valid handshake; STA timed the multi-bit crossing as a normal setup endpoint |
+
+## 2026-05-25
+
+### BUG-006-H: standalone tb Makefile clean used unguarded destructive delete
+
+- First seen in:
+  - Phase 2 ACK_SYMBOLS upstream-default closeout on `2026-05-25`
+  - the standalone run-control_mgmt tb rerun was intentionally skipped because
+    `tb/Makefile` cleanup recipes started with unguarded destructive delete
+    commands
+- Symptom:
+  - `make run_uvm_smoke`, `make compile_gate_uvm`, or `make clean` could not
+    be used under the global no-rm discipline without first patching the
+    cleanup recipes
+- Root cause:
+  - the compile rules deleted the whole `WORK_DIR` / `GATE_WORK_DIR` before
+    recreating them
+  - the clean rule deleted `WORK_DIR`, `GATE_WORK_DIR`, `LOG_DIR`, `transcript`,
+    and `vsim.wlf` without a guard that constrained the deletion to known tb
+    artifacts
+- Fix status:
+  - state: fixed in tb Makefile tooling; standalone tb rerun remains a
+    separate verification round
+  - mechanism:
+    - introduce a `clean_dir_contents` helper that checks whether a known work
+      directory exists before deleting entries inside it with
+      `find ... -mindepth 1 -delete`
+    - make the top-level clean rule keep the known directories themselves and
+      delete only root-level transcript/wave files selected by `find`
+  - before_fix_outcome:
+    - a text scan for the forbidden destructive pattern reported three hits in
+      `tb/Makefile`
+  - after_fix_outcome:
+    - the tb Makefile no longer contains the forbidden pattern
+    - `make clean` can be run without deleting source trees or parent
+      directories
+  - potential_hazard:
+    - the full standalone UVM and gate UVM tests were not rerun in this
+      focused cleanup; run them in the next ACK_SYMBOLS verification round
+  - Claude Opus 4.7 xhigh review decision: pending / not run
+- Commit:
+  - pending local
 
 ## 2026-05-24
 
